@@ -13,4 +13,5 @@ public interface UserService {
     User fecthUserById(Long id);
     void deleteUser(Long id);
     User handleUpdateUser(Long id, User user);
+    User handleGetUserByUsername(String username);
 }
