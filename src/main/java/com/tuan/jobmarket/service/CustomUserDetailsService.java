@@ -25,6 +25,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         com.tuan.jobmarket.domain.User  user = this.userSerice.handleGetUserByUsername(username);
+        if(user == null) {
+            throw new UsernameNotFoundException("User or password khong phu hop");
+        }
         return new User(
             user.getEmail(),
             user.getPassword(),

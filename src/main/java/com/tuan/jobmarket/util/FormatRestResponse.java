@@ -14,7 +14,7 @@ import com.tuan.jobmarket.domain.RestResponse;
 import jakarta.servlet.http.HttpServletResponse;
 
 @ControllerAdvice
-public class FormatRestResponse implements ResponseBodyAdvice{
+public class FormatRestResponse implements ResponseBodyAdvice<Object>{
 
     @Override
     public boolean supports(MethodParameter returnType, Class converterType) {
@@ -22,20 +22,19 @@ public class FormatRestResponse implements ResponseBodyAdvice{
     }
 
     @Override
-    public @Nullable Object beforeBodyWrite(@Nullable Object body, MethodParameter returnType,
+    public Object beforeBodyWrite( Object body, MethodParameter returnType,
             MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request,
             ServerHttpResponse response) {
+        if (body instanceof RestResponse) {
+            return body;
+        }
         HttpServletResponse serverletResponse = ((ServletServerHttpResponse) response).getServletResponse();
         int status = serverletResponse.getStatus();
         
         RestResponse<Object> res = new RestResponse<Object>();
         res.setStatusCode(status);
-        if(body instanceof  String) {
-            return body;
-        }
         if(status >= 400) {
-            res.setError(body.toString());
-            res.setMessage(body);
+            return body;
         } else {
             res.setData(body);
             res.setMessage("CALL API SUCCESS");
