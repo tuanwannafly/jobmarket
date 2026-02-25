@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.dto.LoginDTO;
+import com.tuan.jobmarket.domain.dto.ResLoginDTO;
 import com.tuan.jobmarket.util.SecurityUtil;
 
 import jakarta.validation.Valid;
@@ -30,7 +31,7 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Valid @RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword());
 
     
@@ -39,7 +40,10 @@ public class AuthController {
     
     SecurityContextHolder.getContext().setAuthentication(authentication);
     String access_token = this.securityUtil.createToken(authentication);
+    ResLoginDTO res = new ResLoginDTO();
+    res.setAccessToken(access_token);
+    SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    return ResponseEntity.ok().body(access_token);
+    return ResponseEntity.ok().body(res);
     }
 }
