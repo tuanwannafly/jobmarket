@@ -11,19 +11,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.dto.LoginDTO;
+import com.tuan.jobmarket.util.SecurityUtil;
 
 import jakarta.validation.Valid;
 
 @RestController
 public class AuthController {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final SecurityUtil securityUtil;
     
-    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder) {
+
+
+    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder, SecurityUtil securityUtil) {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
+        this.securityUtil = securityUtil;
     }
 
+
+
     @PostMapping("/login")
-    public ResponseEntity<LoginDTO> login(@Valid @RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<String> login(@Valid @RequestBody LoginDTO loginDTO) {
     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword());
 
     
@@ -31,7 +38,8 @@ public class AuthController {
 
     
     SecurityContextHolder.getContext().setAuthentication(authentication);
+    String access_token = this.securityUtil.createToken(authentication);
 
-            return ResponseEntity.ok().body(loginDTO);
-        }
+    return ResponseEntity.ok().body(access_token);
+    }
 }

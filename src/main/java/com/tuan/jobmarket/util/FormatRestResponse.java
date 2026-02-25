@@ -1,6 +1,5 @@
 package com.tuan.jobmarket.util;
 
-import org.jspecify.annotations.Nullable;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
@@ -25,14 +24,14 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object>{
     public Object beforeBodyWrite( Object body, MethodParameter returnType,
             MediaType selectedContentType, Class selectedConverterType, ServerHttpRequest request,
             ServerHttpResponse response) {
-        if (body instanceof RestResponse) {
-            return body;
-        }
         HttpServletResponse serverletResponse = ((ServletServerHttpResponse) response).getServletResponse();
         int status = serverletResponse.getStatus();
         
         RestResponse<Object> res = new RestResponse<Object>();
         res.setStatusCode(status);
+        if (body instanceof String) {
+            return body;
+        }
         if(status >= 400) {
             return body;
         } else {
