@@ -9,6 +9,9 @@ import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.dto.Meta;
+import com.tuan.jobmarket.domain.dto.ResCreateUserDTO;
+import com.tuan.jobmarket.domain.dto.ResUpdateUserDTO;
+import com.tuan.jobmarket.domain.dto.ResUserDTO;
 import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 import com.tuan.jobmarket.repository.UserRepository;
 import com.tuan.jobmarket.service.UserService;
@@ -75,5 +78,51 @@ public class UserServiceImpl implements UserService {
 
         return rs;
     }
+
+    @Override
+    public boolean isEmailExist(String email) {
+        return this.userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public ResCreateUserDTO convertToResCreateUserDTO(User user) {
+        ResCreateUserDTO res = new ResCreateUserDTO();
+        res.setId(user.getId());
+        res.setEmail(user.getEmail());
+        res.setName(user.getName());
+        res.setAge(user.getAge());
+        res.setCreatedAt(user.getCreatedAt());
+        res.setGender(user.getGender());
+        res.setAddress(user.getAddress());
+        return res;
+    }
+
+    @Override
+    public ResUpdateUserDTO convertToResUpdateUserDTO(User user) {
+        ResUpdateUserDTO res = new ResUpdateUserDTO();
+        res.setId(user.getId());
+        res.setName(user.getName());
+        res.setAge(user.getAge());
+        res.setUpdatedAt(user.getUpdatedAt());
+        res.setGender(user.getGender());
+        res.setAddress(user.getAddress());
+        return res;
+    }
+
+    @Override
+    public ResUserDTO convertToResUserDTO(User user) {
+        ResUserDTO res = new ResUserDTO();
+        res.setId(user.getId());
+        res.setEmail(user.getEmail());
+        res.setName(user.getName());
+        res.setAge(user.getAge());
+        res.setUpdatedAt(user.getUpdatedAt());
+        res.setCreatedAt(user.getCreatedAt());
+        res.setGender(user.getGender());
+        res.setAddress(user.getAddress());
+        return res;
+    }
+
+    
 
 }
