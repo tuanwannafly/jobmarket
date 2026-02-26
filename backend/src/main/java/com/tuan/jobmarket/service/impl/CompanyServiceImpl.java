@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Company;
@@ -29,19 +30,19 @@ public class CompanyServiceImpl implements CompanyService{
     }
 
     @Override
-        public ResultPaginationDTO handleGetCompany(Pageable pageable) {
-        Page<Company> pCompany = this.companyRepository.findAll(pageable);
+    public ResultPaginationDTO handleGetCompany(Specification<Company> spec, Pageable pageable) {
+        Page<Company> pageCompany = this.companyRepository.findAll(spec, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         Meta mt = new Meta();
 
-        mt.setPage(pCompany.getNumber() + 1);
-        mt.setPageSize(pCompany.getSize());
+        mt.setPage(pageCompany.getNumber() + 1);
+        mt.setPageSize(pageCompany.getSize());
 
-        mt.setPages(pCompany.getTotalPages());
-        mt.setTotal(pCompany.getTotalElements());
+        mt.setPages(pageCompany.getTotalPages());
+        mt.setTotal(pageCompany.getTotalElements());
 
         rs.setMeta(mt);
-        rs.setResult(pCompany.getContent());
+        rs.setResult(pageCompany.getContent());
         return rs;
     }
 
@@ -63,4 +64,21 @@ public class CompanyServiceImpl implements CompanyService{
         }
         return null;
     }
+
+    // @Override
+    // public ResultPaginationDTO handleGetCompany(Pageable pageable) {
+    //     Page<Company> pageCompany = this.companyRepository.findAll(spec, pageable);
+    //     ResultPaginationDTO rs = new ResultPaginationDTO();
+    //     Meta mt = new Meta();
+
+    //     mt.setPage(pageCompany.getNumber() + 1);
+    //     mt.setPageSize(pageCompany.getSize());
+
+    //     mt.setPages(pageCompany.getTotalPages());
+    //     mt.setTotal(pageCompany.getTotalElements());
+
+    //     rs.setMeta(mt);
+    //     rs.setResult(pageCompany.getContent());
+    //     return rs;
+    // }
 }

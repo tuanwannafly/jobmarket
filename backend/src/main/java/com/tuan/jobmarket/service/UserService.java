@@ -3,6 +3,7 @@ package com.tuan.jobmarket.service;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.User;
@@ -16,5 +17,5 @@ public interface UserService {
     void deleteUser(Long id);
     User handleUpdateUser( User user);
     User handleGetUserByUsername(String username);
-    ResultPaginationDTO fetchAllUser(Pageable pageable);
+    ResultPaginationDTO fetchAllUser(Specification<User> spec, Pageable pageable);
 }

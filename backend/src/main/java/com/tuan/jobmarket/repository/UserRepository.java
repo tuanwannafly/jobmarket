@@ -1,11 +1,12 @@
 package com.tuan.jobmarket.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
 import com.tuan.jobmarket.domain.User;
 
-
-public interface  UserRepository extends JpaRepository<User, Long>{
-
+@Repository
+public interface  UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User>{
     User findByEmail(String email);
 }
