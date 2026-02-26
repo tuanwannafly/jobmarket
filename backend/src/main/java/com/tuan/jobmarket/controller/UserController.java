@@ -1,10 +1,8 @@
 package com.tuan.jobmarket.controller;
 
-import java.util.List;
-import java.util.Optional;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,12 +12,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 import com.tuan.jobmarket.service.UserService;
+import com.turkraft.springfilter.boot.Filter;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -34,7 +33,7 @@ public class UserController {
 
     @PostMapping("/create/users")
     public ResponseEntity<User> handeCreateUser(@RequestBody User user) {
-        String hashPass = this.passwordEncoder.encode(user.getPassword());
+        // String hashPass = this.passwordEncoder.encode(user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User user1 = this.userService.handelCreateUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(user1);
@@ -42,18 +41,11 @@ public class UserController {
 
     @GetMapping("/users")
     public ResponseEntity<ResultPaginationDTO> getAllUser(
-            @RequestParam("current") Optional<String> currentOptional,
-            @RequestParam("pageSize") Optional<String> pageSizeOptional) {
-        String sCurrent = currentOptional.isPresent() ? currentOptional.get() : "";
-        String sPageSize = pageSizeOptional.isPresent() ? pageSizeOptional.get() : "";
+        @Filter Specification<User> spect,
+        Pageable pageable
+    ) {
 
-        int current = Integer.parseInt(sCurrent);
-        int pageSize = Integer.parseInt(sPageSize);
-
-        Pageable pageable = PageRequest.of(current - 1, pageSize);
-
-        // return ResponseEntity.ok(this.userService.fetchAllUser());
-        return ResponseEntity.status(HttpStatus.OK).body(this.userService.fetchAllUser(pageable));
+        return ResponseEntity.status(HttpStatus.OK).body(this.userService.fetchAllUser(spect, pageable));
     }
 
     @GetMapping("/users/{id}")

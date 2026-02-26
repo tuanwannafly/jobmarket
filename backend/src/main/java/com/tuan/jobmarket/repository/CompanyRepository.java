@@ -1,9 +1,12 @@
 package com.tuan.jobmarket.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
 import com.tuan.jobmarket.domain.Company;
 
-public interface CompanyRepository extends JpaRepository<Company, Long>{
+@Repository
+public interface CompanyRepository extends JpaRepository<Company, Long>, JpaSpecificationExecutor<Company>{
     
 }
