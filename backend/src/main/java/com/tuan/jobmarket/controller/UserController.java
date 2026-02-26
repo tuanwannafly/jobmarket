@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 import com.tuan.jobmarket.service.UserService;
+import com.tuan.jobmarket.util.annotation.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class UserController {
     }
 
     @GetMapping("/users")
+    @ApiMessage("fetch all users")
     public ResponseEntity<ResultPaginationDTO> getAllUser(
         @Filter Specification<User> spect,
         Pageable pageable
