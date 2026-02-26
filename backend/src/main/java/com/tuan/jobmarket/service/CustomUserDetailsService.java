@@ -14,13 +14,9 @@ import org.springframework.stereotype.Component;
 public class CustomUserDetailsService implements UserDetailsService {
     private final UserService userSerice;
 
-    
-
     public CustomUserDetailsService(UserService userSerice) {
         this.userSerice = userSerice;
     }
-
-
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -33,5 +29,4 @@ public class CustomUserDetailsService implements UserDetailsService {
             user.getPassword(),
             Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
     }
-    
 }
