@@ -22,8 +22,4 @@ public class LoginDTO {
     public String getPassword() {
         return password;
     }
-
-    
-
-    
 }

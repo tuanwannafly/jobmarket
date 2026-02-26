@@ -1,7 +1,10 @@
 package com.tuan.jobmarket.controller;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,11 +14,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.User;
+import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 import com.tuan.jobmarket.service.UserService;
-
 import jakarta.validation.Valid;
 
 @RestController
@@ -29,15 +33,27 @@ public class UserController {
     }
 
     @PostMapping("/create/users")
-    public User handeCreateUser(@RequestBody User user) {
+    public ResponseEntity<User> handeCreateUser(@RequestBody User user) {
+        String hashPass = this.passwordEncoder.encode(user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return this.userService.handelCreateUser(user);
+        User user1 = this.userService.handelCreateUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user1);
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = this.userService.findAllUsers();
-        return ResponseEntity.status(HttpStatus.OK).body(users);
+    public ResponseEntity<ResultPaginationDTO> getAllUser(
+            @RequestParam("current") Optional<String> currentOptional,
+            @RequestParam("pageSize") Optional<String> pageSizeOptional) {
+        String sCurrent = currentOptional.isPresent() ? currentOptional.get() : "";
+        String sPageSize = pageSizeOptional.isPresent() ? pageSizeOptional.get() : "";
+
+        int current = Integer.parseInt(sCurrent);
+        int pageSize = Integer.parseInt(sPageSize);
+
+        Pageable pageable = PageRequest.of(current - 1, pageSize);
+
+        // return ResponseEntity.ok(this.userService.fetchAllUser());
+        return ResponseEntity.status(HttpStatus.OK).body(this.userService.fetchAllUser(pageable));
     }
 
     @GetMapping("/users/{id}")
@@ -51,9 +67,9 @@ public class UserController {
         this.userService.deleteUser(id);
         return ResponseEntity.ok("delete user");
     }
-    @PutMapping("/users/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable("id") Long id,@Valid @RequestBody User user) {
-        User update = this.userService.handleUpdateUser(id, user);
+    @PutMapping("/users")
+    public ResponseEntity<User> updateUser(@Valid @RequestBody User user) {
+        User update = this.userService.handleUpdateUser( user);
         return ResponseEntity.status(HttpStatus.OK).body(update);
     }
 }
