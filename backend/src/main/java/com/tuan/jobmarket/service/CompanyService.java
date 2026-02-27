@@ -7,7 +7,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Company;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 
 import jakarta.validation.Valid;
 

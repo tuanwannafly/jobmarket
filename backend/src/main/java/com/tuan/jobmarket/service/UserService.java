@@ -7,10 +7,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.User;
-import com.tuan.jobmarket.domain.dto.ResCreateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUpdateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUserDTO;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUpdateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUserDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 
 @Service
 public interface UserService {

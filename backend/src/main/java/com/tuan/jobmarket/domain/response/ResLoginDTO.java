@@ -1,4 +1,4 @@
-package com.tuan.jobmarket.domain.dto;
+package com.tuan.jobmarket.domain.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

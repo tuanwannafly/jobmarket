@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.User;
-import com.tuan.jobmarket.domain.dto.ResCreateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUpdateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUserDTO;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUpdateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUserDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.service.UserService;
 import com.tuan.jobmarket.util.annotation.ApiMessage;
 import com.tuan.jobmarket.util.error.IdInvalidException;

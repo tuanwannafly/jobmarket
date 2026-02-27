@@ -1,4 +1,4 @@
-package com.tuan.jobmarket.domain.dto;
+package com.tuan.jobmarket.domain.request;
 
 import jakarta.validation.constraints.NotBlank;
 
