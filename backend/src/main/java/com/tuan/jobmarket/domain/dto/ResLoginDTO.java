@@ -1,6 +1,9 @@
 package com.tuan.jobmarket.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class ResLoginDTO {
+    @JsonProperty("access_token")
     private String accessToken;
     private UserLogin user;
 
