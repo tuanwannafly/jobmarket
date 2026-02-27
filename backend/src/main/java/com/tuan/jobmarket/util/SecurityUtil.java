@@ -39,7 +39,7 @@ public class SecurityUtil {
     private long refreshTokenExpiration;
 
 
-    public String createToken(Authentication authentication) {
+    public String createAccessToken(Authentication authentication, ResLoginDTO.UserLogin userLogin) {
         Instant now = Instant.now();
         Instant validity = now.plus(this.jwtKeyExpiration, ChronoUnit.SECONDS);
     
@@ -49,7 +49,7 @@ public class SecurityUtil {
             .issuedAt(now)
             .expiresAt(validity)
             .subject(authentication.getName())
-            .claim("test",authentication)
+            .claim("test", userLogin)
             .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
