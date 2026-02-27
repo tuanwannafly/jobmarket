@@ -132,4 +132,9 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public User getUserByRefreshTokenAndEmail(String token, String email) {
+        return this.userRepository.findByRefreshTokenAndEmail(token, email);
+    }
+
 }
