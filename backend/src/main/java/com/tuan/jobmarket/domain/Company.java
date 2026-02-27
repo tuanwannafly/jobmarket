@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuan.jobmarket.util.SecurityUtil;
 
 import jakarta.persistence.Column;
@@ -43,6 +44,10 @@ public class Company {
     private String createdBy;
 
     private String updatedBy;
+
+    @OneToMany(mappedBy = "company", fetch = FetchType.LAZY)
+    @JsonIgnore
+    List<User> users;
 
     public long getId() {
         return id;
@@ -115,9 +120,6 @@ public class Company {
     public void setUpdatedBy(String updatedBy) {
         this.updatedBy = updatedBy;
     }
-
-    @OneToMany(mappedBy = "company", fetch = FetchType.LAZY)
-    List<User> users;
 
     public List<User> getUsers() {
         return users;

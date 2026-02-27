@@ -9,18 +9,21 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Company;
+import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.repository.CompanyRepository;
+import com.tuan.jobmarket.repository.UserRepository;
 import com.tuan.jobmarket.service.CompanyService;
 
 @Service
 public class CompanyServiceImpl implements CompanyService{
 
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
 
-
-    public CompanyServiceImpl(CompanyRepository companyRepository) {
+    public CompanyServiceImpl(CompanyRepository companyRepository, UserRepository userRepository) {
         this.companyRepository = companyRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -62,6 +65,24 @@ public class CompanyServiceImpl implements CompanyService{
             return this.companyRepository.save(currentCompany);
         }
         return null;
+    }
+
+    @Override
+    public Optional<Company> findById(long id) {
+        return this.companyRepository.findById(id);
+    }
+
+    @Override
+    public void handleDeleteCompany(long id) {
+        Optional<Company> comOptional = this.companyRepository.findById(id);
+        if (comOptional.isPresent()) {
+            Company com = comOptional.get();
+            // fetch all user belong to this company
+            List<User> users = this.userRepository.findByCompany(com);
+            this.userRepository.deleteAll(users);
+        }
+
+        this.companyRepository.deleteById(id);
     }
 
     // @Override
