@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.User;
+import com.tuan.jobmarket.domain.dto.ResCreateUserDTO;
+import com.tuan.jobmarket.domain.dto.ResUpdateUserDTO;
+import com.tuan.jobmarket.domain.dto.ResUserDTO;
 import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 import com.tuan.jobmarket.service.UserService;
 import com.tuan.jobmarket.util.annotation.ApiMessage;
@@ -37,7 +40,7 @@ public class UserController {
 
     @PostMapping("/create/users")
     @ApiMessage("Create a new user")
-    public ResponseEntity<User> handeCreateUser(@Valid @RequestBody User user) throws IdInvalidException {
+    public ResponseEntity<ResCreateUserDTO> handeCreateUser(@Valid @RequestBody User user) throws IdInvalidException {
         boolean isEmailExist = this.userService.isEmailExist(user.getEmail());
         if (isEmailExist) {
             throw new IdInvalidException(
@@ -65,7 +68,7 @@ public class UserController {
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<String> deleteUser( @PathVariable("id") Long id) throws IdInvalidException {
+    public ResponseEntity<ResUserDTO> deleteUser( @PathVariable("id") Long id) throws IdInvalidException {
         User fetchUser = this.userService.fetchUserById(id);
         if (fetchUser == null) {
             throw new IdInvalidException("User với id = " + id + " không tồn tại");
@@ -74,11 +77,11 @@ public class UserController {
                 .body(this.userService.convertToResUserDTO(fetchUser));
     }
     @PutMapping("/users")
-    public ResponseEntity<User> updateUser(@Valid @RequestBody User user) {
+    public ResponseEntity<ResUpdateUserDTO> updateUser(@Valid @RequestBody User user) {
         User user1 = this.userService.handleUpdateUser(user);
-        if (user1 == null) {
-            throw new IdInvalidException("User voi id = " + user1.getId() + " khong ton tai");
-        }
+        // if (user1 == null) {
+        //     throw new IdInvalidException("User voi id = " + user1.getId() + " khong ton tai");
+        // }
         return ResponseEntity.ok(this.userService.convertToResUpdateUserDTO(user1));
     }
 }

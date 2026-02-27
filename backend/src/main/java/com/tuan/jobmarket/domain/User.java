@@ -5,6 +5,7 @@ import java.time.Instant;
 import com.tuan.jobmarket.domain.constant.GenderEnum;
 import com.tuan.jobmarket.util.SecurityUtil;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -33,6 +34,7 @@ public class User {
     private GenderEnum gender;
 
     private String address;
+    @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
     private Instant createdAt;
     private Instant updatedAt;

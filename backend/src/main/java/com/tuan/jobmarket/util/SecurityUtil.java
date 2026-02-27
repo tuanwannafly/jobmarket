@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
+import com.tuan.jobmarket.domain.dto.ResLoginDTO;
+
 @Service
 public class SecurityUtil {
 
@@ -30,8 +32,11 @@ public class SecurityUtil {
     @Value("${tuanjobmarket.jwt.base64-secret}")
     private String jwtKey;
 
-    @Value("${tuanjobmarket.jwt.token-validity-in-seconds}")
+    @Value("${tuanjobmarket.jwt.access-token-validity-in-seconds}")
     private long jwtKeyExpiration;
+
+    @Value("${tuanjobmarket.refresh-token-validity-in-seconds}")
+    private long refreshTokenExpiration;
 
 
     public String createToken(Authentication authentication) {
@@ -73,6 +78,23 @@ public class SecurityUtil {
             return s;
         }
         return null;
+    }
+
+    public String createRefreshToken(String email, ResLoginDTO dto) {
+        Instant now = Instant.now();
+        Instant validity = now.plus(this.refreshTokenExpiration, ChronoUnit.SECONDS);
+
+        // @formatter:off
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .issuedAt(now)
+            .expiresAt(validity)
+            .subject(email)
+            .claim("user", dto.getUser())
+            .build();
+
+        JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
+        return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
+
     }
 
     /**
