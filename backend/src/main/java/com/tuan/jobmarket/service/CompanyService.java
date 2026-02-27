@@ -1,6 +1,7 @@
 package com.tuan.jobmarket.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,8 +18,12 @@ public interface CompanyService {
     Company handelCreateCompany(Company company);
 
     ResultPaginationDTO handleGetCompany(Specification<Company> spec, Pageable pageable);
+
     void deleteCompany(Long id);
 
     Company handleUpdateCompany( Company user);
     
+    Optional<Company> findById(long id);
+
+    void handleDeleteCompany(long id);
 }
