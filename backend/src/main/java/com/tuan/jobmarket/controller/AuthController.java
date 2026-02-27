@@ -47,16 +47,17 @@ public class AuthController {
     }
 
 
-@PostMapping("/auth/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<ResLoginDTO> login(@Valid @RequestBody LoginDTO loginDto) {
         // Nạp input gồm username/password vào Security
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                 loginDto.getUsername(), loginDto.getPassword());
 
         // xác thực người dùng => cần viết hàm loadUserByUsername
-        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+        Authentication authentication = authenticationManagerBuilder.getObject()
+                .authenticate(authenticationToken);
 
-        // create a token
+        // set thông tin người dùng đăng nhập vào context (có thể sử dụng sau này)
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         ResLoginDTO res = new ResLoginDTO();
@@ -69,6 +70,7 @@ public class AuthController {
             res.setUser(userLogin);
         }
 
+        // create access token
         String access_token = this.securityUtil.createAccessToken(authentication.getName(), res.getUser());
         res.setAccessToken(access_token);
 
@@ -78,8 +80,7 @@ public class AuthController {
         // update user
         this.userService.updateUserToken(refresh_token, loginDto.getUsername());
 
-        
-
+        // set cookies
         ResponseCookie resCookies = ResponseCookie
                 .from("refresh_token", refresh_token)
                 .httpOnly(true)
