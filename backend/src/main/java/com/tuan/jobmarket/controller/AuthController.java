@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.User;
-import com.tuan.jobmarket.domain.dto.LoginDTO;
-import com.tuan.jobmarket.domain.dto.ResLoginDTO;
+import com.tuan.jobmarket.domain.request.LoginDTO;
+import com.tuan.jobmarket.domain.response.ResLoginDTO;
 import com.tuan.jobmarket.service.UserService;
 import com.tuan.jobmarket.util.SecurityUtil;
 import com.tuan.jobmarket.util.annotation.ApiMessage;

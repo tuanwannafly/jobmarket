@@ -9,8 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Company;
-import com.tuan.jobmarket.domain.dto.Meta;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.repository.CompanyRepository;
 import com.tuan.jobmarket.service.CompanyService;
 
@@ -33,7 +32,7 @@ public class CompanyServiceImpl implements CompanyService{
     public ResultPaginationDTO handleGetCompany(Specification<Company> spec, Pageable pageable) {
         Page<Company> pageCompany = this.companyRepository.findAll(spec, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
-        Meta mt = new Meta();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
 
         mt.setPage(pageCompany.getNumber() + 1);
         mt.setPageSize(pageCompany.getSize());

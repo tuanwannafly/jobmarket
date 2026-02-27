@@ -8,11 +8,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.User;
-import com.tuan.jobmarket.domain.dto.Meta;
-import com.tuan.jobmarket.domain.dto.ResCreateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUpdateUserDTO;
-import com.tuan.jobmarket.domain.dto.ResUserDTO;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUpdateUserDTO;
+import com.tuan.jobmarket.domain.response.ResUserDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.repository.UserRepository;
 import com.tuan.jobmarket.service.UserService;
 
@@ -65,7 +64,7 @@ public class UserServiceImpl implements UserService {
     public ResultPaginationDTO fetchAllUser(Specification<User> spec, Pageable pageable) {
         Page<User> pageUser = this.userRepository.findAll(spec, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
-        Meta mt = new Meta();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
 
         mt.setPage(pageUser.getNumber() + 1);
         mt.setPageSize(pageUser.getSize());

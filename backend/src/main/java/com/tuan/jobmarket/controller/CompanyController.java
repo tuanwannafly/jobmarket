@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuan.jobmarket.domain.Company;
-import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.service.CompanyService;
 import com.turkraft.springfilter.boot.Filter;
 
