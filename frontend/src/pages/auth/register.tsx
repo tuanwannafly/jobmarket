@@ -95,9 +95,9 @@ const RegisterPage = () => {
                                     // onChange={onGenderChange}
                                     allowClear
                                 >
-                                    <Option value="MALE">Nam</Option>
-                                    <Option value="FEMALE">Nữ</Option>
-                                    <Option value="OTHER">Khác</Option>
+                                    <Option value="male">Nam</Option>
+                                    <Option value="female">Nữ</Option>
+                                    <Option value="other">Khác</Option>
                                 </Select>
                             </Form.Item>
 

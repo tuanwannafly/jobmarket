@@ -17,8 +17,6 @@ Fanpage “Hỏi Dân IT” : https://www.facebook.com/askITwithERIC/
 
 Udemy Hỏi Dân IT: https://www.udemy.com/user/eric-7039/
 
-===
-
 Các bước cài đặt: (chế độ development)
 1. clone code
 2. cài đặt thư viện: npm i

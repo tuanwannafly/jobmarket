@@ -3,10 +3,6 @@
     background-color: white;
 }
 
-.ant-menu-horizontal {
-    border-bottom: unset !important;
-}
-
 .ql-editor {
     min-height: 350px !important;
     overflow: hidden;
@@ -33,11 +29,5 @@
             // /* Safari */
             // transition-delay: 0.2s;
         }
-    }
-}
-
-.customize-form-item {
-    .ant-form-item {
-        margin-bottom: 0 !important;
     }
 }

@@ -5,7 +5,7 @@ import { IUser } from '@/types/backend';
 interface IState {
     isFetching: boolean;
     meta: {
-        page: number;
+        current: number;
         pageSize: number;
         pages: number;
         total: number;
@@ -25,7 +25,7 @@ export const fetchUser = createAsyncThunk(
 const initialState: IState = {
     isFetching: true,
     meta: {
-        page: 1,
+        current: 1,
         pageSize: 10,
         pages: 0,
         total: 0

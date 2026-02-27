@@ -1,13 +1,15 @@
 import { Navigate } from "react-router-dom";
 import { useAppSelector } from "@/redux/hooks";
 import NotPermitted from "./not-permitted";
-import Loading from "../loading";
 
 const RoleBaseRoute = (props: any) => {
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
     const user = useAppSelector(state => state.account.user);
-    const userRole = user.role.name;
+    const userRole = user.role;
 
-    if (userRole !== 'NORMAL_USER') {
+    if (isAdminRoute && userRole === 'ADMIN' ||
+        !isAdminRoute && (userRole === 'USER' || userRole === 'ADMIN')
+    ) {
         return (<>{props.children}</>)
     } else {
         return (<NotPermitted />)
@@ -16,24 +18,17 @@ const RoleBaseRoute = (props: any) => {
 
 const ProtectedRoute = (props: any) => {
     const isAuthenticated = useAppSelector(state => state.account.isAuthenticated)
-    const isLoading = useAppSelector(state => state.account.isLoading)
 
     return (
         <>
-            {isLoading === true ?
-                <Loading />
-                :
+            {isAuthenticated === true ?
                 <>
-                    {isAuthenticated === true ?
-                        <>
-                            <RoleBaseRoute>
-                                {props.children}
-                            </RoleBaseRoute>
-                        </>
-                        :
-                        <Navigate to='/login' replace />
-                    }
+                    <RoleBaseRoute>
+                        {props.children}
+                    </RoleBaseRoute>
                 </>
+                :
+                <Navigate to='/login' replace />
             }
         </>
     )
