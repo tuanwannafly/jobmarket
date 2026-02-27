@@ -16,7 +16,7 @@ import com.tuan.jobmarket.domain.dto.ResultPaginationDTO;
 public interface UserService {
     User handelCreateUser(User user);
     List<User> findAllUsers();
-    User fecthUserById(Long id);
+    User fetchUserById(Long id);
     void deleteUser(Long id);
     User handleUpdateUser( User user);
     User handleGetUserByUsername(String username);
@@ -25,4 +25,7 @@ public interface UserService {
     ResCreateUserDTO convertToResCreateUserDTO(User user);
     ResUpdateUserDTO convertToResUpdateUserDTO(User user);
     ResUserDTO convertToResUserDTO(User user);
+    void updateUserToken(String token, String email);
+    User getUserByRefreshTokenAndEmail(String token, String email);
+
 }

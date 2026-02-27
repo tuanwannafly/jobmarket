@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User fecthUserById(Long id) {
+    public User fetchUserById(Long id) {
         return this.userRepository.findById(id).get();
     }
 
@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public User handleUpdateUser(User reqUser) {
-        User currentUser = this.fecthUserById(reqUser.getId());
+        User currentUser = this.fetchUserById(reqUser.getId());
         if (currentUser != null) {
             currentUser.setEmail(reqUser.getEmail());
             currentUser.setName(reqUser.getName());
@@ -123,6 +123,18 @@ public class UserServiceImpl implements UserService {
         return res;
     }
 
-    
+    @Override
+    public void updateUserToken(String token, String email) {
+        User currentUser = this.handleGetUserByUsername(email);
+        if (currentUser != null) {
+            currentUser.setRefreshToken(token);
+            this.userRepository.save(currentUser);
+        }
+    }
+
+    @Override
+    public User getUserByRefreshTokenAndEmail(String token, String email) {
+        return this.userRepository.findByRefreshTokenAndEmail(token, email);
+    }
 
 }
