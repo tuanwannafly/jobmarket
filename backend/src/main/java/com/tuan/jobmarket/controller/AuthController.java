@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.dto.LoginDTO;
 import com.tuan.jobmarket.domain.dto.ResLoginDTO;
+import com.tuan.jobmarket.service.UserService;
 import com.tuan.jobmarket.util.SecurityUtil;
 
 import jakarta.validation.Valid;
@@ -22,14 +24,15 @@ import jakarta.validation.Valid;
 public class AuthController {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final SecurityUtil securityUtil;
+    private final UserService userService;
     
 
-
-    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder, SecurityUtil securityUtil) {
+    public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder, SecurityUtil securityUtil,
+            UserService userService) {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
         this.securityUtil = securityUtil;
+        this.userService = userService;
     }
-
 
 
     @PostMapping("/login")
@@ -41,6 +44,13 @@ public class AuthController {
         String access_token = this.securityUtil.createToken(authentication);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ResLoginDTO res = new ResLoginDTO();
+
+        User currentUser = this.userService.handleGetUserByUsername(loginDTO.getUsername());
+        if(currentUser != null) 
+        {
+            ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin(currentUser.getId(), currentUser.getEmail(), currentUser.getName());
+            res.setUser(userLogin);
+        }
         res.setAccessToken(access_token);
         return ResponseEntity.ok().body(res);
     }
