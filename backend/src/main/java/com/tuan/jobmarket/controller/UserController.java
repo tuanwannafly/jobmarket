@@ -77,6 +77,7 @@ public class UserController {
                 .body(this.userService.convertToResUserDTO(fetchUser));
     }
     @PutMapping("/users")
+    @ApiMessage("Update a user")
     public ResponseEntity<ResUpdateUserDTO> updateUser(@Valid @RequestBody User user) {
         User user1 = this.userService.handleUpdateUser(user);
         // if (user1 == null) {
