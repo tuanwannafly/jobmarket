@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuan.jobmarket.domain.Company;
 import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.service.CompanyService;
+import com.tuan.jobmarket.util.annotation.ApiMessage;
 import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
@@ -35,12 +36,13 @@ public class CompanyController {
     }
 
     @PostMapping("/create/company")
-    public ResponseEntity<?> handeCreateUser(@RequestBody Company company) {
+    public ResponseEntity<?> handeCreateUser( @Valid @RequestBody Company company) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.companyService.handelCreateCompany(company));
     }
 
 
     @GetMapping("/companies")
+    @ApiMessage("Fetch companies")
     public ResponseEntity<ResultPaginationDTO> getCompany(
                 @Filter Specification<Company> spect,
         Pageable pageable) {
@@ -53,10 +55,11 @@ public class CompanyController {
     //     return ResponseEntity.status(HttpStatus.OK).body(company);
     // }
 
+
     @DeleteMapping("/companies/{id}")
-    public ResponseEntity<String> deleteUser( @PathVariable("id") Long id) {
-        this.companyService.deleteCompany(id);
-        return ResponseEntity.ok("delete company done");
+    public ResponseEntity<Void> deleteCompany(@PathVariable("id") long id) {
+        this.companyService.handleDeleteCompany(id);
+        return ResponseEntity.ok(null);
     }
 
     @PutMapping("/companies")

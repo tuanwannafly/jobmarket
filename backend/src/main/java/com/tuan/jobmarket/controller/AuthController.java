@@ -96,22 +96,26 @@ public class AuthController {
 
     @GetMapping("/auth/account")
     @ApiMessage("fetch account")
-    public ResponseEntity<ResLoginDTO.UserLogin> getAccount() {
-            String email = SecurityUtil.getCurrentUserLogin().isPresent()
-                            ? SecurityUtil.getCurrentUserLogin().get()
-                            : "";
+    public ResponseEntity<ResLoginDTO.UserGetAccount> getAccount() {
+        String email = SecurityUtil.getCurrentUserLogin().isPresent()
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
 
-            User currentUserDB = this.userService.handleGetUserByUsername(email);
-            ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin();
-            if (currentUserDB != null) {
-                    userLogin.setId(currentUserDB.getId());
-                    userLogin.setEmail(currentUserDB.getEmail());
-                    userLogin.setName(currentUserDB.getName());
-            }
+        User currentUserDB = this.userService.handleGetUserByUsername(email);
+        ResLoginDTO.UserLogin userLogin = new ResLoginDTO.UserLogin();
+        ResLoginDTO.UserGetAccount userGetAccount = new ResLoginDTO.UserGetAccount();
 
-            return ResponseEntity.ok().body(userLogin);
+        if (currentUserDB != null) {
+            userLogin.setId(currentUserDB.getId());
+            userLogin.setEmail(currentUserDB.getEmail());
+            userLogin.setName(currentUserDB.getName());
+            userGetAccount.setUser(userLogin);
+        }
+
+        return ResponseEntity.ok().body(userGetAccount);
     }
 
+    
     @GetMapping("/auth/refresh")
     @ApiMessage("Get User by refresh token")
     public ResponseEntity<ResLoginDTO> getRefreshToken(
