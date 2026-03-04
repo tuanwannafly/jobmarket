@@ -1,7 +1,7 @@
 package com.tuan.jobmarket.domain.response;
 
 public class RestResponse<T> {
-        private int statusCode;
+    private int statusCode;
     private String error;
 
     private Object message;
