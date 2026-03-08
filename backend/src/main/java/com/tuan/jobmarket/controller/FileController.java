@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -31,7 +32,8 @@ public class FileController {
 
     @Value("${tuanjobmarket.upload-file.base-path}")
     private String baseURI;
-
+    
+    @Autowired
     private final FileService fileService;
 
     public FileController(FileService fileService) {

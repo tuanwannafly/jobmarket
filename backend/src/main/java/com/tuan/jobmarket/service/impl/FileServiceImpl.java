@@ -14,10 +14,12 @@ import java.nio.file.StandardCopyOption;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tuan.jobmarket.service.FileService;
 
+@Service
 public class FileServiceImpl implements FileService {
 
 
