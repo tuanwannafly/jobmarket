@@ -67,4 +67,11 @@ public class CompanyController {
         Company updatedCompany = this.companyService.handleUpdateCompany(reqCompany);
         return ResponseEntity.ok(updatedCompany);
     }
+
+    @GetMapping("/companies/{id}")
+    @ApiMessage("fetch company by id")
+    public ResponseEntity<Company> fetchCompanyById(@PathVariable("id") long id) {
+        Optional<Company> cOptional = this.companyService.findById(id);
+        return ResponseEntity.ok().body(cOptional.get());
+    }
 }
