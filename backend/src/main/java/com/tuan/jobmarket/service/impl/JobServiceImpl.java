@@ -15,6 +15,7 @@ import com.tuan.jobmarket.domain.Skill;
 import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.domain.response.job.ResCreateJobDTO;
 import com.tuan.jobmarket.domain.response.job.ResUpdateJobDTO;
+import com.tuan.jobmarket.repository.CompanyRepository;
 import com.tuan.jobmarket.repository.JobRepository;
 import com.tuan.jobmarket.repository.SkillRepository;
 import com.tuan.jobmarket.service.JobService;
@@ -24,12 +25,17 @@ public class JobServiceImpl implements JobService{
 
     private final JobRepository jobRepository;
     private final SkillRepository skillRepository;
+    private final CompanyRepository companyRepository;
 
 
 
-    public JobServiceImpl(JobRepository jobRepository, SkillRepository skillRepository) {
+
+
+    public JobServiceImpl(JobRepository jobRepository, SkillRepository skillRepository,
+            CompanyRepository companyRepository) {
         this.jobRepository = jobRepository;
         this.skillRepository = skillRepository;
+        this.companyRepository = companyRepository;
     }
 
     @Override
