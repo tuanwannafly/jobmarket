@@ -17,7 +17,7 @@ import com.tuan.jobmarket.domain.response.job.ResUpdateJobDTO;
 public interface JobService {
     Optional<Job> fetchJobById(long id);
     ResCreateJobDTO create(Job job);
-    ResUpdateJobDTO update(Job job);
+    ResUpdateJobDTO update(Job job, Job jobInDB);
     void delete(long id);
     ResultPaginationDTO fetchAll(Specification<Job> spec, Pageable pageable);
 }

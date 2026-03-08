@@ -1,4 +1,4 @@
-package com.tuan.jobmarket.domain.response;
+package com.tuan.jobmarket.domain.response.file;
 
 import java.time.Instant;
 
