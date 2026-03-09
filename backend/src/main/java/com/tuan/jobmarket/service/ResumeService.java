@@ -21,4 +21,5 @@ public interface ResumeService {
     void delete(long id);
     ResFetchResumeDTO getResume(Resume resume);
     ResultPaginationDTO fetchAllResume(Specification<Resume> spec, Pageable pageable);
+    ResultPaginationDTO fetchResumeByUser(Pageable pageable);
 }

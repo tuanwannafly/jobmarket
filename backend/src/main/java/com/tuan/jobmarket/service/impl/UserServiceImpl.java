@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Company;
+import com.tuan.jobmarket.domain.Role;
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
 import com.tuan.jobmarket.domain.response.ResUpdateUserDTO;
@@ -17,16 +18,21 @@ import com.tuan.jobmarket.domain.response.ResUserDTO;
 import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.repository.UserRepository;
 import com.tuan.jobmarket.service.CompanyService;
+import com.tuan.jobmarket.service.RoleService;
 import com.tuan.jobmarket.service.UserService;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final CompanyService companyService;
+    private final RoleService roleService;
 
-    public UserServiceImpl(UserRepository userRepository, CompanyService companyService) {
+
+
+    public UserServiceImpl(UserRepository userRepository, CompanyService companyService, RoleService roleService) {
         this.userRepository = userRepository;
         this.companyService = companyService;
+        this.roleService = roleService;
     }
 
     @Override
@@ -34,6 +40,11 @@ public class UserServiceImpl implements UserService {
         if (user.getCompany() != null) {
             Optional<Company> companyOptional = this.companyService.findById(user.getCompany().getId());
             user.setCompany(companyOptional.isPresent() ? companyOptional.get() : null);
+        }
+
+        if (user.getRole() != null) {
+            Role r = this.roleService.fetchById(user.getRole().getId());
+            user.setRole(r != null ? r : null);
         }
         return this.userRepository.save(user);
     }
@@ -71,6 +82,11 @@ public class UserServiceImpl implements UserService {
                 reqUser.setCompany(companyOptional.isPresent() ? companyOptional.get() : null);
             }
 
+            if (reqUser.getRole() != null) {
+                Role r = this.roleService.fetchById(reqUser.getRole().getId());
+                currentUser.setRole(r != null ? r : null);
+            }
+
             // update
             currentUser = this.userRepository.save(currentUser);
         }
@@ -98,18 +114,7 @@ public class UserServiceImpl implements UserService {
 
         // remove sensitive data
         List<ResUserDTO> listUser = pageUser.getContent()
-                .stream().map(item -> new ResUserDTO(
-                        item.getId(),
-                        item.getEmail(),
-                        item.getName(),
-                        item.getGender(),
-                        item.getAddress(),
-                        item.getAge(),
-                        item.getUpdatedAt(),
-                        item.getCreatedAt(),
-                        new ResUserDTO.CompanyUser(
-                                item.getCompany() != null ? item.getCompany().getId() : 0,
-                                item.getCompany() != null ? item.getCompany().getName() : null)))
+                .stream().map(item -> this.convertToResUserDTO(item))
                 .collect(Collectors.toList());
 
         rs.setResult(listUser);
@@ -166,11 +171,18 @@ public class UserServiceImpl implements UserService {
     public ResUserDTO convertToResUserDTO(User user) {
         ResUserDTO res = new ResUserDTO();
         ResUserDTO.CompanyUser com = new ResUserDTO.CompanyUser();
+        ResUserDTO.RoleUser roleUser = new ResUserDTO.RoleUser();
 
         if (user.getCompany() != null) {
             com.setId(user.getCompany().getId());
             com.setName(user.getCompany().getName());
             res.setCompany(com);
+        }
+
+        if (user.getRole() != null) {
+            roleUser.setId(user.getRole().getId());
+            roleUser.setName(user.getRole().getName());
+            res.setRole(roleUser);
         }
 
         res.setId(user.getId());
