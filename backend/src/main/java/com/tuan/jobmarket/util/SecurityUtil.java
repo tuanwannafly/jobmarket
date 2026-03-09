@@ -47,7 +47,12 @@ public class SecurityUtil {
     }
 
 
-    public String createAccessToken(String email, ResLoginDTO.UserLogin dto) {
+    public String createAccessToken(String email, ResLoginDTO dto) {
+        ResLoginDTO.UserInsideToken userToken = new ResLoginDTO.UserInsideToken();
+        userToken.setId(dto.getUser().getId());
+        userToken.setEmail(dto.getUser().getEmail());
+        userToken.setName(dto.getUser().getName());
+
         Instant now = Instant.now();
         Instant validity = now.plus(this.jwtKeyExpiration, ChronoUnit.SECONDS);
 
@@ -62,7 +67,7 @@ public class SecurityUtil {
             .issuedAt(now)
             .expiresAt(validity)
             .subject(email)
-            .claim("user", dto)
+            .claim("user", userToken)
             .claim("permission", listAuthority)
             .build();
 
