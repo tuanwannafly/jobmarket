@@ -85,5 +85,15 @@ public class PermissionServiceImpl implements PermissionService {
         rs.setResult(pPermissions.getContent());
         return rs;
     }
+
+    @Override
+    public boolean isSameName(Permission p) {
+        Permission permissionDB = this.fetchById(p.getId());
+        if (permissionDB != null) {
+            if (permissionDB.getName().equals(p.getName()))
+                return true;
+        }
+        return false;
+    }
     
 }
