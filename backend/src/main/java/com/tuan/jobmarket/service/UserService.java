@@ -14,7 +14,7 @@ import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 
 @Service
 public interface UserService {
-    User handelCreateUser(User user);
+    User handleCreateUser(User user);
     List<User> findAllUsers();
     User fetchUserById(Long id);
     void deleteUser(Long id);
