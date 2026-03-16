@@ -4,12 +4,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.stereotype.Service;
+
 import com.tuan.jobmarket.domain.Skill;
 import com.tuan.jobmarket.domain.Subscriber;
 import com.tuan.jobmarket.repository.SkillRepository;
 import com.tuan.jobmarket.repository.SubscriberRepository;
 import com.tuan.jobmarket.service.SubscriberService;
 
+@Service
 public class SubscriberServiceImpl implements SubscriberService{
 
     private final SubscriberRepository subscriberRepository;
