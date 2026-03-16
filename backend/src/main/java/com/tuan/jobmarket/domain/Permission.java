@@ -45,6 +45,30 @@ public class Permission {
     private String createdBy;
     private String updatedBy;
 
+    
+
+    
+
+    public Permission() {
+    }
+
+    public Permission(long id, @NotBlank(message = "name không được để trống") String name,
+            @NotBlank(message = "apiPath không được để trống") String apiPath,
+            @NotBlank(message = "method không được để trống") String method,
+            @NotBlank(message = "module không được để trống") String module, Instant createdAt, Instant updatedAt,
+            String createdBy, String updatedBy, List<Role> roles) {
+        this.id = id;
+        this.name = name;
+        this.apiPath = apiPath;
+        this.method = method;
+        this.module = module;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.createdBy = createdBy;
+        this.updatedBy = updatedBy;
+        this.roles = roles;
+    }
+
     public Permission(String name, String apiPath, String method, String module) {
         this.name = name;
         this.apiPath = apiPath;

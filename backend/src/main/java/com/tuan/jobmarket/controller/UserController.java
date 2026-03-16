@@ -47,7 +47,7 @@ public class UserController {
                     "Email " + user.getEmail() + "da ton tai, vui long su dung email khac.");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User user1 = this.userService.handelCreateUser(user);
+        User user1 = this.userService.handleCreateUser(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUserDTO(user1));
     }
 
