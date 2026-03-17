@@ -14,4 +14,5 @@ public interface SubscriberService {
     Subscriber findById(long id);
     ResEmailJob convertJobToSendEmail(Job job);
     void sendSubscribersEmailJobs();
+    Subscriber findByEmail(String email);
 }
