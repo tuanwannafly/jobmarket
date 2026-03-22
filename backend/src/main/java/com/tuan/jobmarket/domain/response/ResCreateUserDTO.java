@@ -3,6 +3,7 @@ package com.tuan.jobmarket.domain.response;
 import java.time.Instant;
 
 import com.tuan.jobmarket.domain.constant.GenderEnum;
+import com.tuan.jobmarket.domain.response.ResUserDTO.RoleUser;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +20,7 @@ public class ResCreateUserDTO {
     private Instant createdAt;
 
     private CompanyUser company;
+    private RoleUser role;
 
     @Getter
     @Setter
@@ -26,6 +28,13 @@ public class ResCreateUserDTO {
         private long id;
         private String name;
     }
+
+    @Getter
+    @Setter
+    public static class RoleUser {
+    private long id;
+    private String name;
+}
 
 
 }

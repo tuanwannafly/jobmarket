@@ -50,6 +50,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Role findRoleByName(String name) {
+        return this.roleService.findByName(name);
+    }
+
+    @Override
     public List<User> findAllUsers() {
         return this.userRepository.findAll();
     }
@@ -144,6 +149,12 @@ public class UserServiceImpl implements UserService {
             com.setId(user.getCompany().getId());
             com.setName(user.getCompany().getName());
             res.setCompany(com);
+        }
+        if (user.getRole() != null) {
+            ResCreateUserDTO.RoleUser roleUser = new ResCreateUserDTO.RoleUser();
+            roleUser.setId(user.getRole().getId());
+            roleUser.setName(user.getRole().getName());
+            res.setRole(roleUser);
         }
         return res;
     }

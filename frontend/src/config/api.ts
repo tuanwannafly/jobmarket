@@ -1,12 +1,15 @@
 import { IBackendRes, ICompany, IAccount, IUser, IModelPaginate, IGetAccount, IJob, IResume, IPermission, IRole, ISkill, ISubscribers } from '@/types/backend';
 import axios from 'config/axios-customize';
+import axiosNoAuth from 'axios';
 
 /**
  * 
 Module Auth
  */
-export const callRegister = (name: string, email: string, password: string, age: number, gender: string, address: string) => {
-    return axios.post<IBackendRes<IUser>>('/api/v1/auth/register', { name, email, password, age, gender, address })
+export const callRegister = (name: string, email: string, password: string, age: number, gender: string, address: string, userType?: string) => {
+    // BE tự gán role theo userType — không cần FE fetch roleId
+    const params = userType ? `?userType=${encodeURIComponent(userType)}` : '';
+    return axios.post<IBackendRes<IUser>>(`/api/v1/auth/register${params}`, { name, email, password, age, gender, address });
 }
 
 export const callLogin = (username: string, password: string) => {
@@ -217,6 +220,24 @@ export const callFetchRole = (query: string) => {
     return axios.get<IBackendRes<IModelPaginate<IRole>>>(`/api/v1/roles?${query}`);
 }
 
+// Fetch roles không kèm token — dùng cho trang đăng ký
+// Tạo axios instance riêng không có interceptor gắn token
+const _axiosNoAuth = axiosNoAuth.create({
+    baseURL: import.meta.env.VITE_BACKEND_URL as string,
+    withCredentials: true,
+});
+_axiosNoAuth.interceptors.response.use(
+    (res) => res.data,
+    (error) => {
+        // Trả về error response data thay vì throw, để FE dễ xử lý
+        return error?.response?.data ?? Promise.reject(error);
+    }
+);
+
+export const callFetchRolePublic = (query: string) => {
+    return _axiosNoAuth.get<IBackendRes<IModelPaginate<IRole>>>(`/api/v1/roles?${query}`);
+}
+
 export const callFetchRoleById = (id: string) => {
     return axios.get<IBackendRes<IRole>>(`/api/v1/roles/${id}`);
 }
@@ -249,3 +270,7 @@ export const callFetchSubscriberById = (id: string) => {
     return axios.get<IBackendRes<ISubscribers>>(`/api/v1/subscribers/${id}`);
 }
 
+
+export const callChangePassword = (data: { currentPassword: string; newPassword: string }) => {
+    return axios.patch<IBackendRes<IUser>>('/api/v1/users/change-password', data);
+}

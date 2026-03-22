@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tuan.jobmarket.domain.Role;
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.request.LoginDTO;
 import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
@@ -115,6 +117,7 @@ public class AuthController {
             userLogin.setId(currentUserDB.getId());
             userLogin.setEmail(currentUserDB.getEmail());
             userLogin.setName(currentUserDB.getName());
+            userLogin.setRole(currentUserDB.getRole()); 
             userGetAccount.setUser(userLogin);
         }
 
@@ -203,11 +206,25 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @ApiMessage("Register a new user")
-    public ResponseEntity<ResCreateUserDTO> register(@Valid @RequestBody User postManUser) throws IdInvalidException {
+    public ResponseEntity<ResCreateUserDTO> register(
+            @Valid @RequestBody User postManUser,
+            @RequestParam(value = "userType", required = false, defaultValue = "CANDIDATE") String userType
+    ) throws IdInvalidException {
         boolean isEmailExist = this.userService.isEmailExist(postManUser.getEmail());
         if (isEmailExist) {
             throw new IdInvalidException(
-                    "Email " + postManUser.getEmail() + "đã tồn tại, vui lòng sử dụng email khác.");
+                    "Email " + postManUser.getEmail() + " đã tồn tại, vui lòng sử dụng email khác.");
+        }
+
+        // ✅ BE tự tìm role theo userType — FE không cần gửi roleId nữa
+        // userType = "CANDIDATE" → tìm role tên "Candidate"
+        // userType = "COMPANY"   → tìm role tên "COMPANY"
+        if (postManUser.getRole() == null || postManUser.getRole().getId() == 0) {
+            String roleName = userType.equalsIgnoreCase("COMPANY") ? "COMPANY" : "Candidate";
+            Role role = this.userService.findRoleByName(roleName);
+            if (role != null) {
+                postManUser.setRole(role);
+            }
         }
 
         String hashPassword = this.passwordEncoder.encode(postManUser.getPassword());

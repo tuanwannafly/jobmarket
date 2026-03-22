@@ -15,4 +15,5 @@ public interface RoleService {
     Role update(Role r);
     void delete(long id);
     ResultPaginationDTO getRoles(Specification<Role> spec, Pageable pageable);
+    Role findByName(String name);
 }

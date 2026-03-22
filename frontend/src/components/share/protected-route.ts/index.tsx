@@ -1,42 +1,31 @@
 import { Navigate } from "react-router-dom";
 import { useAppSelector } from "@/redux/hooks";
-import NotPermitted from "./not-permitted";
 import Loading from "../loading";
+
+const ADMIN_ROLES = ['SUPER_ADMIN'];
 
 const RoleBaseRoute = (props: any) => {
     const user = useAppSelector(state => state.account.user);
-    const userRole = user.role.name;
+    const isLoading = useAppSelector(state => state.account.isLoading);
+    const userRole = user.role?.name;
 
-    if (userRole !== 'NORMAL_USER') {
-        return (<>{props.children}</>)
-    } else {
-        return (<NotPermitted />)
-    }
+    // ❌ Lỗi cũ: userRole !== 'NORMAL_USER'
+    // → bất kỳ role nào không phải NORMAL_USER (HR, MANAGER, CANDIDATE...) đều vào được /admin
+    // ✅ Fix: chỉ cho phép các role trong danh sách ADMIN_ROLES
+    const isAdmin = userRole && ADMIN_ROLES.includes(userRole.trim());
+
+    if (isLoading) return <Loading />;
+    if (isAdmin) return <>{props.children}</>;
+    return <Navigate to='/' replace />;
 }
 
 const ProtectedRoute = (props: any) => {
-    const isAuthenticated = useAppSelector(state => state.account.isAuthenticated)
-    const isLoading = useAppSelector(state => state.account.isLoading)
+    const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
+    const isLoading = useAppSelector(state => state.account.isLoading);
 
-    return (
-        <>
-            {isLoading === true ?
-                <Loading />
-                :
-                <>
-                    {isAuthenticated === true ?
-                        <>
-                            <RoleBaseRoute>
-                                {props.children}
-                            </RoleBaseRoute>
-                        </>
-                        :
-                        <Navigate to='/login' replace />
-                    }
-                </>
-            }
-        </>
-    )
+    if (isLoading) return <Loading />;
+    if (!isAuthenticated) return <Navigate to='/login' replace />;
+    return <RoleBaseRoute>{props.children}</RoleBaseRoute>;
 }
 
 export default ProtectedRoute;

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import com.tuan.jobmarket.domain.Role;
 import com.tuan.jobmarket.domain.User;
 import com.tuan.jobmarket.domain.response.ResCreateUserDTO;
 import com.tuan.jobmarket.domain.response.ResUpdateUserDTO;
@@ -15,6 +16,7 @@ import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 @Service
 public interface UserService {
     User handleCreateUser(User user);
+    Role findRoleByName(String name);
     List<User> findAllUsers();
     User fetchUserById(Long id);
     void deleteUser(Long id);

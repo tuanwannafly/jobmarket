@@ -2,6 +2,7 @@ package com.tuan.jobmarket.domain;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.Flow.Subscriber;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuan.jobmarket.util.SecurityUtil;
