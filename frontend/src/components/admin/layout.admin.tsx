@@ -20,106 +20,101 @@ import { isMobile } from 'react-device-detect';
 import type { MenuProps } from 'antd';
 import { setLogoutAction } from '@/redux/slice/accountSlide';
 import { ALL_PERMISSIONS } from '@/config/permissions';
-
+ 
 const { Content, Sider } = Layout;
-
+ 
 const LayoutAdmin = () => {
     const location = useLocation();
-
+ 
     const [collapsed, setCollapsed] = useState(false);
     const [activeMenu, setActiveMenu] = useState('');
     const user = useAppSelector(state => state.account.user);
-
+ 
     const permissions = useAppSelector(state => state.account.user.role.permissions);
     const [menuItems, setMenuItems] = useState<MenuProps['items']>([]);
-
+ 
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
-
+ 
     useEffect(() => {
         const ACL_ENABLE = import.meta.env.VITE_ACL_ENABLE;
-        if (permissions?.length || ACL_ENABLE === 'false') {
-
-            const viewCompany = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.COMPANIES.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.COMPANIES.GET_PAGINATE.method
-            )
-
-            const viewUser = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.USERS.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.USERS.GET_PAGINATE.method
-            )
-
-            const viewJob = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.JOBS.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.JOBS.GET_PAGINATE.method
-            )
-
-            const viewResume = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.RESUMES.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.RESUMES.GET_PAGINATE.method
-            )
-
-            const viewRole = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.ROLES.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.ROLES.GET_PAGINATE.method
-            )
-
-            const viewPermission = permissions?.find(item =>
-                item.apiPath === ALL_PERMISSIONS.PERMISSIONS.GET_PAGINATE.apiPath
-                && item.method === ALL_PERMISSIONS.USERS.GET_PAGINATE.method
-            )
-
-            const full = [
-                {
-                    label: <Link to='/admin'>Dashboard</Link>,
-                    key: '/admin',
-                    icon: <AppstoreOutlined />
-                },
-                ...(viewCompany || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/company'>Company</Link>,
-                    key: '/admin/company',
-                    icon: <BankOutlined />,
-                }] : []),
-
-                ...(viewUser || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/user'>User</Link>,
-                    key: '/admin/user',
-                    icon: <UserOutlined />
-                }] : []),
-                ...(viewJob || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/job'>Job</Link>,
-                    key: '/admin/job',
-                    icon: <ScheduleOutlined />
-                }] : []),
-
-                ...(viewResume || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/resume'>Resume</Link>,
-                    key: '/admin/resume',
-                    icon: <AliwangwangOutlined />
-                }] : []),
-                ...(viewPermission || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/permission'>Permission</Link>,
-                    key: '/admin/permission',
-                    icon: <ApiOutlined />
-                }] : []),
-                ...(viewRole || ACL_ENABLE === 'false' ? [{
-                    label: <Link to='/admin/role'>Role</Link>,
-                    key: '/admin/role',
-                    icon: <ExceptionOutlined />
-                }] : []),
-
-
-
-            ];
-
-            setMenuItems(full);
-        }
-    }, [permissions])
+ 
+        // ✅ Fix: chỉ SUPER_ADMIN mới showAll (thấy toàn bộ menu không cần check permission)
+        // Các role khác phải có permission tương ứng mới thấy từng mục
+        const isSuperAdmin = user?.role?.name === 'SUPER_ADMIN';
+        const showAll = ACL_ENABLE === 'false' || isSuperAdmin;
+ 
+        const viewCompany = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.COMPANIES.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.COMPANIES.GET_PAGINATE.method
+        );
+        const viewUser = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.USERS.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.USERS.GET_PAGINATE.method
+        );
+        const viewJob = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.JOBS.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.JOBS.GET_PAGINATE.method
+        );
+        const viewResume = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.RESUMES.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.RESUMES.GET_PAGINATE.method
+        );
+        const viewRole = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.ROLES.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.ROLES.GET_PAGINATE.method
+        );
+        const viewPermission = permissions?.find(item =>
+            item.apiPath === ALL_PERMISSIONS.PERMISSIONS.GET_PAGINATE.apiPath
+            && item.method === ALL_PERMISSIONS.PERMISSIONS.GET_PAGINATE.method
+        );
+ 
+        // Bỏ outer if — luôn build menu, showAll quyết định từng item
+        const full = [
+            {
+                label: <Link to='/admin'>Dashboard</Link>,
+                key: '/admin',
+                icon: <AppstoreOutlined />
+            },
+            ...(viewCompany || showAll ? [{
+                label: <Link to='/admin/company'>Company</Link>,
+                key: '/admin/company',
+                icon: <BankOutlined />,
+            }] : []),
+            ...(viewUser || showAll ? [{
+                label: <Link to='/admin/user'>User</Link>,
+                key: '/admin/user',
+                icon: <UserOutlined />
+            }] : []),
+            ...(viewJob || showAll ? [{
+                label: <Link to='/admin/job'>Job</Link>,
+                key: '/admin/job',
+                icon: <ScheduleOutlined />
+            }] : []),
+            ...(viewResume || showAll ? [{
+                label: <Link to='/admin/resume'>Resume</Link>,
+                key: '/admin/resume',
+                icon: <AliwangwangOutlined />
+            }] : []),
+            ...(viewPermission || showAll ? [{
+                label: <Link to='/admin/permission'>Permission</Link>,
+                key: '/admin/permission',
+                icon: <ApiOutlined />
+            }] : []),
+            ...(viewRole || showAll ? [{
+                label: <Link to='/admin/role'>Role</Link>,
+                key: '/admin/role',
+                icon: <ExceptionOutlined />
+            }] : []),
+        ];
+ 
+        setMenuItems(full);
+    // Fix: thêm user vào dependency để re-run khi fetchAccount hoàn thành
+    }, [permissions, user])
     useEffect(() => {
         setActiveMenu(location.pathname)
     }, [location])
-
+ 
     const handleLogout = async () => {
         const res = await callLogout();
         if (res && +res.statusCode === 200) {
@@ -128,7 +123,7 @@ const LayoutAdmin = () => {
             navigate('/')
         }
     }
-
+ 
     // if (isMobile) {
     //     items.push({
     //         label: <label
@@ -139,7 +134,7 @@ const LayoutAdmin = () => {
     //         icon: <LogoutOutlined />
     //     })
     // }
-
+ 
     const itemsDropdown = [
         {
             label: <Link to={'/'}>Trang chủ</Link>,
@@ -153,7 +148,7 @@ const LayoutAdmin = () => {
             key: 'logout',
         },
     ];
-
+ 
     return (
         <>
             <Layout
@@ -184,7 +179,7 @@ const LayoutAdmin = () => {
                         mode="horizontal"
                     />
                 }
-
+ 
                 <Layout>
                     {!isMobile &&
                         <div className='admin-header' style={{ display: "flex", justifyContent: "space-between", marginRight: 20 }}>
@@ -198,12 +193,12 @@ const LayoutAdmin = () => {
                                     height: 64,
                                 }}
                             />
-
+ 
                             <Dropdown menu={{ items: itemsDropdown }} trigger={['click']}>
                                 <Space style={{ cursor: "pointer" }}>
                                     Welcome {user?.name}
                                     <Avatar> {user?.name?.substring(0, 2)?.toUpperCase()} </Avatar>
-
+ 
                                 </Space>
                             </Dropdown>
                         </div>
@@ -216,9 +211,9 @@ const LayoutAdmin = () => {
                     </Footer> */}
                 </Layout>
             </Layout>
-
+ 
         </>
     );
 };
-
+ 
 export default LayoutAdmin;

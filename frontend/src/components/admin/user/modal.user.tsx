@@ -190,11 +190,10 @@ const ModalUser = (props: IProps) => {
                     </Col>
                     <Col lg={12} md={12} sm={24} xs={24}>
                         <ProFormText.Password
-                            disabled={dataInit?.id ? true : false}
                             label="Password"
                             name="password"
                             rules={[{ required: dataInit?.id ? false : true, message: 'Vui lòng không bỏ trống' }]}
-                            placeholder="Nhập password"
+                            placeholder={dataInit?.id ? 'Để trống nếu không đổi mật khẩu' : 'Nhập password'}
                         />
                     </Col>
                     <Col lg={6} md={6} sm={24} xs={24}>

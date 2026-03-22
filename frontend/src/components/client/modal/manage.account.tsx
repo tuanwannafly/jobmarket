@@ -1,290 +1,552 @@
-import { Button, Col, Form, Modal, Row, Select, Table, Tabs, message, notification } from "antd";
+import {
+    Avatar, Badge, Button, Col, Form, Input, Modal,
+    Row, Select, Table, Tabs, Tag, message, notification
+} from "antd";
 import { isMobile } from "react-device-detect";
 import type { TabsProps } from 'antd';
 import { IResume, ISubscribers } from "@/types/backend";
 import { useState, useEffect } from 'react';
-import { callCreateSubscriber, callFetchAllSkill, callFetchResumeByUser, callGetSubscriberSkills, callUpdateSubscriber } from "@/config/api";
+import {
+    callChangePassword, callFetchAllSkill, callFetchResumeByUser,
+    callGetSubscriberSkills, callCreateSubscriber, callUpdateSubscriber,
+    callUpdateUser,
+} from "@/config/api";
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
-import { MonitorOutlined } from "@ant-design/icons";
-import { SKILLS_LIST } from "@/config/utils";
-import { useAppSelector } from "@/redux/hooks";
+import {
+    MonitorOutlined, UserOutlined, MailOutlined, EnvironmentOutlined,
+    LockOutlined, FileTextOutlined, BellOutlined, IdcardOutlined,
+    CheckCircleOutlined, CalendarOutlined, ManOutlined, WomanOutlined,
+} from "@ant-design/icons";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setUserLoginInfo } from "@/redux/slice/accountSlide";
 
 interface IProps {
     open: boolean;
     onClose: (v: boolean) => void;
 }
 
-const UserResume = (props: any) => {
+/* ─── STATUS tag colors ─────────────────────────────── */
+const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }> = {
+    PENDING:  { color: '#d97706', bg: 'rgba(217,119,6,0.1)',   label: 'Chờ duyệt'  },
+    APPROVED: { color: '#059669', bg: 'rgba(5,150,105,0.1)',   label: 'Đã duyệt'   },
+    REJECTED: { color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   label: 'Từ chối'    },
+};
+
+/* ════════════════════════════════════════════════════════
+   TAB 1 — Rải CV
+═════════════════════════════════════════════════════════ */
+const UserResume = () => {
     const [listCV, setListCV] = useState<IResume[]>([]);
-    const [isFetching, setIsFetching] = useState<boolean>(false);
+    const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
-        const init = async () => {
+        (async () => {
             setIsFetching(true);
             const res = await callFetchResumeByUser();
-            if (res && res.data) {
-                setListCV(res.data.result as IResume[])
-            }
+            if (res?.data) setListCV(res.data.result as IResume[]);
             setIsFetching(false);
-        }
-        init();
-    }, [])
+        })();
+    }, []);
 
     const columns: ColumnsType<IResume> = [
         {
-            title: 'STT',
-            key: 'index',
-            width: 50,
-            align: "center",
-            render: (text, record, index) => {
+            title: 'STT', key: 'index', width: 56, align: 'center',
+            render: (_: any, __: any, i: number) => (
+                <span style={{ fontWeight: 700, color: '#64748b' }}>{i + 1}</span>
+            ),
+        },
+        {
+            title: 'Công ty', key: 'company',
+            render: (_: any, record: IResume) => {
+                const c = record.companyId as any;
                 return (
-                    <>
-                        {(index + 1)}
-                    </>)
-            }
-        },
-        {
-            title: 'Công Ty',
-            dataIndex: "companyName",
-
-        },
-        {
-            title: 'Job title',
-            dataIndex: ["job", "name"],
-
-        },
-        {
-            title: 'Trạng thái',
-            dataIndex: "status",
-        },
-        {
-            title: 'Ngày rải CV',
-            dataIndex: "createdAt",
-            render(value, record, index) {
-                return (
-                    <>{dayjs(record.createdAt).format('DD-MM-YYYY HH:mm:ss')}</>
-                )
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {c?.logo && (
+                            <img
+                                src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${c.logo}`}
+                                style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', border: '1px solid #e2e8f0' }}
+                                alt=""
+                            />
+                        )}
+                        <span style={{ fontWeight: 600, color: '#0F172A', fontSize: 13 }}>
+                            {c?.name ?? '—'}
+                        </span>
+                    </div>
+                );
             },
         },
         {
-            title: '',
-            dataIndex: "",
-            render(value, record, index) {
+            title: 'Vị trí ứng tuyển', dataIndex: ['job', 'name'],
+            render: (v: string) => <span style={{ fontWeight: 500, color: '#334155', fontSize: 13 }}>{v}</span>,
+        },
+        {
+            title: 'Trạng thái', dataIndex: 'status',
+            render: (v: string) => {
+                const s = STATUS_COLOR[v] ?? { color: '#475569', bg: '#f1f5f9', label: v };
                 return (
-                    <a
-                        href={`${import.meta.env.VITE_BACKEND_URL}/storage/resume/${record?.url}`}
-                        target="_blank"
-                    >Chi tiết</a>
-                )
+                    <span style={{
+                        display: 'inline-block', padding: '3px 12px', borderRadius: 99,
+                        fontSize: 12, fontWeight: 700,
+                        color: s.color, background: s.bg,
+                        border: `1px solid ${s.color}33`,
+                    }}>{s.label}</span>
+                );
             },
+        },
+        {
+            title: 'Ngày nộp', dataIndex: 'createdAt',
+            render: (v: string) => (
+                <span style={{ color: '#64748b', fontSize: 12 }}>
+                    {dayjs(v).format('DD/MM/YYYY HH:mm')}
+                </span>
+            ),
+        },
+        {
+            title: '', key: 'action',
+            render: (_: any, r: IResume) => (
+                <a
+                    href={`${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`}
+                    target="_blank"
+                    style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: 12, fontWeight: 700, color: '#2563EB',
+                        textDecoration: 'none',
+                    }}
+                >
+                    <FileTextOutlined /> Xem CV
+                </a>
+            ),
         },
     ];
 
     return (
         <div>
-            <Table<IResume>
-                columns={columns}
-                dataSource={listCV}
-                loading={isFetching}
-                pagination={false}
-            />
+            {listCV.length === 0 && !isFetching ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
+                    <FileTextOutlined style={{ fontSize: 40, marginBottom: 12, display: 'block' }} />
+                    <div style={{ fontWeight: 600 }}>Bạn chưa nộp CV nào</div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}>Hãy tìm việc và ứng tuyển ngay!</div>
+                </div>
+            ) : (
+                <Table<IResume>
+                    columns={columns}
+                    dataSource={listCV}
+                    loading={isFetching}
+                    pagination={false}
+                    rowKey="id"
+                    size="small"
+                />
+            )}
         </div>
-    )
-}
+    );
+};
 
-const UserUpdateInfo = (props: any) => {
-    return (
-        <div>
-            //todo
-        </div>
-    )
-}
-
-const JobByEmail = (props: any) => {
+/* ════════════════════════════════════════════════════════
+   TAB 2 — Nhận Jobs qua Email
+═════════════════════════════════════════════════════════ */
+const JobByEmail = () => {
     const [form] = Form.useForm();
-    const user = useAppSelector(state => state.account.user);
-    const [optionsSkills, setOptionsSkills] = useState<{
-        label: string;
-        value: string;
-    }[]>([]);
-
+    const user = useAppSelector(s => s.account.user);
+    const [optionsSkills, setOptionsSkills] = useState<{ label: string; value: string }[]>([]);
     const [subscriber, setSubscriber] = useState<ISubscribers | null>(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const init = async () => {
-            await fetchSkill();
-            const res = await callGetSubscriberSkills();
-            if (res && res.data) {
-                setSubscriber(res.data);
-                const d = res.data.skills;
-                const arr = d.map((item: any) => {
-                    return {
-                        label: item.name as string,
-                        value: item.id + "" as string
-                    }
-                });
-                form.setFieldValue("skills", arr);
+        (async () => {
+            const skillRes = await callFetchAllSkill('page=1&size=100&sort=createdAt,desc');
+            if (skillRes?.data) {
+                setOptionsSkills(skillRes.data.result?.map(i => ({ label: i.name as string, value: i.id + '' })) ?? []);
             }
-        }
-        init();
-    }, [])
-
-    const fetchSkill = async () => {
-        let query = `page=1&size=100&sort=createdAt,desc`;
-
-        const res = await callFetchAllSkill(query);
-        if (res && res.data) {
-            const arr = res?.data?.result?.map(item => {
-                return {
-                    label: item.name as string,
-                    value: item.id + "" as string
-                }
-            }) ?? [];
-            setOptionsSkills(arr);
-        }
-    }
+            const subRes = await callGetSubscriberSkills();
+            if (subRes?.data) {
+                setSubscriber(subRes.data);
+                form.setFieldValue('skills', subRes.data.skills.map((s: any) => ({ label: s.name, value: s.id + '' })));
+            }
+        })();
+    }, []);
 
     const onFinish = async (values: any) => {
-        const { skills } = values;
-
-        const arr = skills?.map((item: any) => {
-            if (item?.id) return { id: item.id };
-            return { id: item }
-        });
-
-        if (!subscriber?.id) {
-            //create subscriber
-            const data = {
-                email: user.email,
-                name: user.name,
-                skills: arr
-            }
-
-            const res = await callCreateSubscriber(data);
-            if (res.data) {
-                message.success("Cập nhật thông tin thành công");
-                setSubscriber(res.data);
-            } else {
-                notification.error({
-                    message: 'Có lỗi xảy ra',
-                    description: res.message
-                });
-            }
-
-
+        setLoading(true);
+        const arr = values.skills?.map((i: any) => ({ id: i?.id ?? i }));
+        const payload = { email: user.email, name: user.name, skills: arr };
+        const res = subscriber?.id
+            ? await callUpdateSubscriber({ id: subscriber.id, skills: arr })
+            : await callCreateSubscriber(payload);
+        setLoading(false);
+        if (res?.data) {
+            message.success('Cập nhật kỹ năng nhận Job thành công!');
+            setSubscriber(res.data);
         } else {
-            //update subscriber
-            const res = await callUpdateSubscriber({
-                id: subscriber?.id,
-                skills: arr
-            });
-            if (res.data) {
-                message.success("Cập nhật thông tin thành công");
-                setSubscriber(res.data);
-            } else {
-                notification.error({
-                    message: 'Có lỗi xảy ra',
-                    description: res.message
-                });
-            }
+            notification.error({ message: 'Có lỗi xảy ra', description: res.message });
         }
-
-
-    }
-
-    return (
-        <>
-            <Form
-                onFinish={onFinish}
-                form={form}
-            >
-                <Row gutter={[20, 20]}>
-                    <Col span={24}>
-                        <Form.Item
-                            label={"Kỹ năng"}
-                            name={"skills"}
-                            rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 skill!' }]}
-
-                        >
-                            <Select
-                                mode="multiple"
-                                allowClear
-                                suffixIcon={null}
-                                style={{ width: '100%' }}
-                                placeholder={
-                                    <>
-                                        <MonitorOutlined /> Tìm theo kỹ năng...
-                                    </>
-                                }
-                                optionLabelProp="label"
-                                options={optionsSkills}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                        <Button onClick={() => form.submit()}>Cập nhật</Button>
-                    </Col>
-                </Row>
-            </Form>
-        </>
-    )
-}
-
-const ManageAccount = (props: IProps) => {
-    const { open, onClose } = props;
-
-    const onChange = (key: string) => {
-        // console.log(key);
     };
 
+    return (
+        <div>
+            <div style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <BellOutlined style={{ color: '#2563EB', fontSize: 16, marginTop: 2 }} />
+                <div>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>Nhận thông báo việc làm qua email</div>
+                    <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
+                        Chọn kỹ năng bạn quan tâm — chúng tôi sẽ gửi email khi có Job mới phù hợp.
+                    </div>
+                </div>
+            </div>
+            <Form form={form} onFinish={onFinish} layout="vertical">
+                <Form.Item
+                    label={<span style={{ fontWeight: 700, color: '#0F172A' }}>Kỹ năng quan tâm</span>}
+                    name="skills"
+                    rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 skill!' }]}
+                >
+                    <Select
+                        mode="multiple" allowClear
+                        suffixIcon={<MonitorOutlined style={{ color: '#94a3b8' }} />}
+                        style={{ width: '100%' }}
+                        placeholder="Tìm theo kỹ năng..."
+                        optionLabelProp="label"
+                        options={optionsSkills}
+                        size="large"
+                    />
+                </Form.Item>
+                <Button
+                    type="primary" onClick={() => form.submit()} loading={loading}
+                    style={{ background: 'linear-gradient(135deg,#2563EB,#0EA5E9)', border: 'none', height: 42, borderRadius: 8, fontWeight: 700, paddingInline: 28 }}
+                >
+                    Lưu cài đặt
+                </Button>
+            </Form>
+        </div>
+    );
+};
+
+/* ════════════════════════════════════════════════════════
+   TAB 3 — Cập nhật thông tin
+═════════════════════════════════════════════════════════ */
+const UserUpdateInfo = () => {
+    const dispatch = useAppDispatch();
+    const user = useAppSelector(s => s.account.user);
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        form.setFieldsValue({
+            name:    user.name,
+            email:   user.email,
+            age:     (user as any).age,
+            gender:  (user as any).gender,
+            address: (user as any).address,
+        });
+    }, [user]);
+
+    const onFinish = async (values: any) => {
+        setLoading(true);
+        const res = await callUpdateUser({ id: user.id, ...values } as any);
+        setLoading(false);
+        if (res?.data) {
+            message.success('Cập nhật thông tin thành công!');
+            dispatch(setUserLoginInfo({ ...user, ...res.data }));
+        } else {
+            notification.error({ message: 'Có lỗi xảy ra', description: res.message });
+        }
+    };
+
+    return (
+        <Form form={form} onFinish={onFinish} layout="vertical">
+            <Row gutter={[20, 0]}>
+                <Col span={24} md={12}>
+                    <Form.Item
+                        label={<span style={{ fontWeight: 700 }}>Họ và tên</span>}
+                        name="name"
+                        rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}
+                    >
+                        <Input prefix={<UserOutlined style={{ color: '#94a3b8' }} />} placeholder="Nguyễn Văn A" size="large" />
+                    </Form.Item>
+                </Col>
+                <Col span={24} md={12}>
+                    <Form.Item
+                        label={<span style={{ fontWeight: 700 }}>Email</span>}
+                        name="email"
+                    >
+                        <Input prefix={<MailOutlined style={{ color: '#94a3b8' }} />} disabled size="large" />
+                    </Form.Item>
+                </Col>
+                <Col span={24} md={6}>
+                    <Form.Item
+                        label={<span style={{ fontWeight: 700 }}>Tuổi</span>}
+                        name="age"
+                        rules={[{ required: true, message: 'Vui lòng nhập tuổi!' }]}
+                    >
+                        <Input prefix={<CalendarOutlined style={{ color: '#94a3b8' }} />} type="number" placeholder="25" size="large" />
+                    </Form.Item>
+                </Col>
+                <Col span={24} md={6}>
+                    <Form.Item
+                        label={<span style={{ fontWeight: 700 }}>Giới tính</span>}
+                        name="gender"
+                        rules={[{ required: true, message: 'Vui lòng chọn giới tính!' }]}
+                    >
+                        <Select size="large" placeholder="Chọn giới tính" options={[
+                            { label: 'Nam', value: 'MALE' },
+                            { label: 'Nữ', value: 'FEMALE' },
+                            { label: 'Khác', value: 'OTHER' },
+                        ]} />
+                    </Form.Item>
+                </Col>
+                <Col span={24} md={12}>
+                    <Form.Item
+                        label={<span style={{ fontWeight: 700 }}>Địa chỉ</span>}
+                        name="address"
+                        rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}
+                    >
+                        <Input prefix={<EnvironmentOutlined style={{ color: '#94a3b8' }} />} placeholder="TP. Hồ Chí Minh" size="large" />
+                    </Form.Item>
+                </Col>
+            </Row>
+            <Button
+                type="primary" onClick={() => form.submit()} loading={loading}
+                style={{ background: 'linear-gradient(135deg,#2563EB,#0EA5E9)', border: 'none', height: 42, borderRadius: 8, fontWeight: 700, paddingInline: 28 }}
+            >
+                Lưu thay đổi
+            </Button>
+        </Form>
+    );
+};
+
+/* ════════════════════════════════════════════════════════
+   TAB 4 — Thay đổi mật khẩu
+═════════════════════════════════════════════════════════ */
+const UserPassword = () => {
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+
+    const onFinish = async (values: any) => {
+        const { currentPassword, newPassword, confirmPassword } = values;
+        if (newPassword !== confirmPassword) {
+            form.setFields([{ name: 'confirmPassword', errors: ['Mật khẩu xác nhận không khớp!'] }]);
+            return;
+        }
+        setLoading(true);
+        const res = await callChangePassword({ currentPassword, newPassword });
+        setLoading(false);
+        if (res?.data) {
+            message.success('Đổi mật khẩu thành công!');
+            form.resetFields();
+        } else {
+            notification.error({ message: 'Đổi mật khẩu thất bại', description: res.message ?? 'Mật khẩu hiện tại không đúng' });
+        }
+    };
+
+    return (
+        <div style={{ maxWidth: 440 }}>
+            <div style={{ background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.15)', borderRadius: 12, padding: '14px 18px', marginBottom: 24, display: 'flex', gap: 12 }}>
+                <LockOutlined style={{ color: '#dc2626', fontSize: 16, marginTop: 2 }} />
+                <div style={{ color: '#64748b', fontSize: 13 }}>
+                    Mật khẩu phải có ít nhất <strong>6 ký tự</strong>. Không chia sẻ mật khẩu với bất kỳ ai.
+                </div>
+            </div>
+            <Form form={form} onFinish={onFinish} layout="vertical">
+                <Form.Item
+                    label={<span style={{ fontWeight: 700 }}>Mật khẩu hiện tại</span>}
+                    name="currentPassword"
+                    rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại!' }]}
+                >
+                    <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" size="large" />
+                </Form.Item>
+                <Form.Item
+                    label={<span style={{ fontWeight: 700 }}>Mật khẩu mới</span>}
+                    name="newPassword"
+                    rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới!' }, { min: 6, message: 'Tối thiểu 6 ký tự!' }]}
+                >
+                    <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" size="large" />
+                </Form.Item>
+                <Form.Item
+                    label={<span style={{ fontWeight: 700 }}>Xác nhận mật khẩu mới</span>}
+                    name="confirmPassword"
+                    rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu!' }]}
+                >
+                    <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="••••••••" size="large" />
+                </Form.Item>
+                <Button
+                    type="primary" danger onClick={() => form.submit()} loading={loading}
+                    style={{ height: 42, borderRadius: 8, fontWeight: 700, paddingInline: 28 }}
+                >
+                    Đổi mật khẩu
+                </Button>
+            </Form>
+        </div>
+    );
+};
+
+/* ════════════════════════════════════════════════════════
+   TAB 5 — Hồ sơ ứng viên (MỚI)
+═════════════════════════════════════════════════════════ */
+const UserProfile = () => {
+    const user = useAppSelector(s => s.account.user);
+    const u = user as any;
+
+    const GENDER_LABEL: Record<string, string> = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
+
+    const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string | number }) => (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 0', borderBottom: '1px solid #F1F5F9' }}>
+            <div style={{ width: 36, height: 36, background: 'rgba(37,99,235,0.08)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', flexShrink: 0 }}>
+                {icon}
+            </div>
+            <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 3 }}>{label}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: value ? '#0F172A' : '#cbd5e1' }}>{value ?? 'Chưa cập nhật'}</div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div>
+            {/* Profile header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '20px 24px', background: 'linear-gradient(135deg,#060D1F,#0F2552)', borderRadius: 16, marginBottom: 24 }}>
+                <Avatar
+                    size={72}
+                    style={{ background: 'linear-gradient(135deg,#2563EB,#0EA5E9)', fontSize: 28, fontWeight: 800, flexShrink: 0 }}
+                >
+                    {user.name?.charAt(0)?.toUpperCase()}
+                </Avatar>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'Sora,sans-serif', fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px', marginBottom: 4 }}>
+                        {user.name}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>{user.email}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 99, color: '#34d399', fontSize: 11, fontWeight: 700, padding: '3px 12px' }}>
+                            <CheckCircleOutlined /> Đã xác thực
+                        </span>
+                        {user.role?.name && user.role.name !== 'NORMAL_USER' && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(37,99,235,0.18)', border: '1px solid rgba(37,99,235,0.38)', borderRadius: 99, color: '#93c5fd', fontSize: 11, fontWeight: 700, padding: '3px 12px' }}>
+                                {user.role.name}
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Info grid */}
+            <Row gutter={[20, 0]}>
+                <Col span={24} md={12}>
+                    <div style={{ background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '4px 20px 8px' }}>
+                        <div style={{ fontFamily: 'Sora,sans-serif', fontSize: 13, fontWeight: 800, color: '#0F172A', padding: '16px 0 8px', letterSpacing: '-0.2px' }}>
+                            Thông tin cá nhân
+                        </div>
+                        <InfoRow icon={<UserOutlined />}      label="Họ và tên"  value={user.name} />
+                        <InfoRow icon={<MailOutlined />}       label="Email"      value={user.email} />
+                        <InfoRow icon={<CalendarOutlined />}   label="Tuổi"       value={u.age ? `${u.age} tuổi` : undefined} />
+                        <InfoRow icon={u.gender === 'FEMALE' ? <WomanOutlined /> : <ManOutlined />}
+                                 label="Giới tính"  value={GENDER_LABEL[u.gender] ?? u.gender} />
+                        <InfoRow icon={<EnvironmentOutlined />} label="Địa chỉ"  value={u.address} />
+                    </div>
+                </Col>
+                <Col span={24} md={12}>
+                    <div style={{ background: '#fff', border: '1.5px solid #E2E8F0', borderRadius: 16, padding: '4px 20px 8px' }}>
+                        <div style={{ fontFamily: 'Sora,sans-serif', fontSize: 13, fontWeight: 800, color: '#0F172A', padding: '16px 0 8px' }}>
+                            Thông tin tài khoản
+                        </div>
+                        <InfoRow icon={<IdcardOutlined />} label="ID tài khoản" value={user.id} />
+                        <InfoRow icon={<CheckCircleOutlined />} label="Vai trò"
+                            value={user.role?.name === 'NORMAL_USER' ? 'Ứng viên' : user.role?.name} />
+                        {u.company?.name && (
+                            <InfoRow icon={<UserOutlined />} label="Công ty" value={u.company.name} />
+                        )}
+                        <div style={{ padding: '14px 0' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }}>Quyền hạn</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {user.role?.permissions?.slice(0, 6).map((p, i) => (
+                                    <span key={i} style={{ fontSize: 11, fontWeight: 600, background: 'rgba(37,99,235,0.07)', color: '#2563EB', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 6, padding: '3px 10px' }}>
+                                        {p.name}
+                                    </span>
+                                ))}
+                                {(user.role?.permissions?.length ?? 0) > 6 && (
+                                    <span style={{ fontSize: 11, color: '#94a3b8', padding: '3px 8px' }}>
+                                        +{(user.role?.permissions?.length ?? 0) - 6} khác
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Col>
+            </Row>
+        </div>
+    );
+};
+
+/* ════════════════════════════════════════════════════════
+   MAIN MODAL
+═════════════════════════════════════════════════════════ */
+const ManageAccount = ({ open, onClose }: IProps) => {
     const items: TabsProps['items'] = [
         {
+            key: 'user-profile',
+            label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <IdcardOutlined /> Hồ sơ
+                </span>
+            ),
+            children: <UserProfile />,
+        },
+        {
             key: 'user-resume',
-            label: `Rải CV`,
+            label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FileTextOutlined /> Rải CV
+                </span>
+            ),
             children: <UserResume />,
         },
         {
             key: 'email-by-skills',
-            label: `Nhận Jobs qua Email`,
+            label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <BellOutlined /> Nhận Jobs qua Email
+                </span>
+            ),
             children: <JobByEmail />,
         },
         {
             key: 'user-update-info',
-            label: `Cập nhật thông tin`,
+            label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <UserOutlined /> Cập nhật thông tin
+                </span>
+            ),
             children: <UserUpdateInfo />,
         },
         {
             key: 'user-password',
-            label: `Thay đổi mật khẩu`,
-            children: `//todo`,
+            label: (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <LockOutlined /> Đổi mật khẩu
+                </span>
+            ),
+            children: <UserPassword />,
         },
     ];
 
-
     return (
-        <>
-            <Modal
-                title="Quản lý tài khoản"
-                open={open}
-                onCancel={() => onClose(false)}
-                maskClosable={false}
-                footer={null}
-                destroyOnClose={true}
-                width={isMobile ? "100%" : "1000px"}
-            >
-
-                <div style={{ minHeight: 400 }}>
-                    <Tabs
-                        defaultActiveKey="user-resume"
-                        items={items}
-                        onChange={onChange}
-                    />
-                </div>
-
-            </Modal>
-        </>
-    )
-}
+        <Modal
+            title={
+                <span style={{ fontFamily: 'Sora,sans-serif', fontSize: 17, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px' }}>
+                    Quản lý tài khoản
+                </span>
+            }
+            open={open}
+            onCancel={() => onClose(false)}
+            maskClosable={false}
+            footer={null}
+            destroyOnClose
+            width={isMobile ? '100%' : 960}
+            styles={{ body: { padding: '8px 24px 24px' } }}
+        >
+            <div style={{ minHeight: 420 }}>
+                <Tabs defaultActiveKey="user-profile" items={items} />
+            </div>
+        </Modal>
+    );
+};
 
 export default ManageAccount;

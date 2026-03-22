@@ -1,4 +1,4 @@
-import { Button, Divider, Form, Input, message, notification } from 'antd';
+import { Button, Form, Input, notification } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { callLogin } from 'config/api';
 import { useState, useEffect } from 'react';
@@ -13,17 +13,13 @@ const LoginPage = () => {
     const dispatch = useDispatch();
     const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
 
-    let location = useLocation();
-    let params = new URLSearchParams(location.search);
-    const callback = params?.get("callback");
+    const location = useLocation();
+    const params = new URLSearchParams(location.search);
+    const callback = params?.get('callback');
 
     useEffect(() => {
-        //đã login => redirect to '/'
-        if (isAuthenticated) {
-            // navigate('/');
-            window.location.href = '/';
-        }
-    }, [])
+        if (isAuthenticated) navigate('/');
+    }, []);
 
     const onFinish = async (values: any) => {
         const { username, password } = values;
@@ -33,73 +29,92 @@ const LoginPage = () => {
 
         if (res?.data) {
             localStorage.setItem('access_token', res.data.access_token);
-            dispatch(setUserLoginInfo(res.data.user))
-            message.success('Đăng nhập tài khoản thành công!');
-            window.location.href = callback ? callback : '/';
+            dispatch(setUserLoginInfo(res.data.user));
+
+            const roleName = res.data.user?.role?.name;
+            const isAdmin = roleName && roleName.trim() !== '' && roleName !== 'NORMAL_USER';
+
+            // ✅ dùng navigate() — không reload trang, không mất Redux state
+            if (callback) {
+                navigate(callback);
+            } else if (isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate('/');
+            }
         } else {
             notification.error({
-                message: "Có lỗi xảy ra",
-                description:
-                    res.message && Array.isArray(res.message) ? res.message[0] : res.message,
-                duration: 5
-            })
+                message: 'Đăng nhập thất bại',
+                description: res.message && Array.isArray(res.message)
+                    ? res.message[0] : res.message,
+                duration: 5,
+            });
         }
     };
 
-
     return (
-        <div className={styles["login-page"]}>
-            <main className={styles.main}>
-                <div className={styles.container}>
-                    <section className={styles.wrapper}>
-                        <div className={styles.heading}>
-                            <h2 className={`${styles.text} ${styles["text-large"]}`}>Đăng Nhập</h2>
-                            <Divider />
-
-                        </div>
-                        <Form
-                            name="basic"
-                            // style={{ maxWidth: 600, margin: '0 auto' }}
-                            onFinish={onFinish}
-                            autoComplete="off"
-                        >
-                            <Form.Item
-                                labelCol={{ span: 24 }} //whole column
-                                label="Email"
-                                name="username"
-                                rules={[{ required: true, message: 'Email không được để trống!' }]}
-                            >
-                                <Input />
-                            </Form.Item>
-
-                            <Form.Item
-                                labelCol={{ span: 24 }} //whole column
-                                label="Mật khẩu"
-                                name="password"
-                                rules={[{ required: true, message: 'Mật khẩu không được để trống!' }]}
-                            >
-                                <Input.Password />
-                            </Form.Item>
-
-                            <Form.Item
-                            // wrapperCol={{ offset: 6, span: 16 }}
-                            >
-                                <Button type="primary" htmlType="submit" loading={isSubmit}>
-                                    Đăng nhập
-                                </Button>
-                            </Form.Item>
-                            <Divider>Or</Divider>
-                            <p className="text text-normal">Chưa có tài khoản ?
-                                <span>
-                                    <Link to='/register' > Đăng Ký </Link>
-                                </span>
-                            </p>
-                        </Form>
-                    </section>
+        <div className={styles['auth-page']}>
+            <div className={styles['auth-left']}>
+                <div className={styles['auth-left-inner']}>
+                    <Link to="/" className={styles['auth-logo']}>
+                        <div className={styles['logo-icon']}>⚡</div>
+                        <span className={styles['logo-text']}>Job<span>IT</span></span>
+                    </Link>
+                    <h1 className={styles['auth-tagline']}>
+                        Cơ hội nghề nghiệp<br />
+                        dành cho <em>Developer</em>
+                    </h1>
+                    <p className={styles['auth-desc']}>
+                        Hàng nghìn vị trí IT từ các công ty công nghệ hàng đầu
+                        đang chờ đợi bạn. Đăng nhập để khám phá ngay hôm nay.
+                    </p>
+                    <div className={styles['auth-stats']}>
+                        <div className={styles['auth-stat']}><strong>1,200+</strong><span>Việc làm</span></div>
+                        <div className={styles['auth-stat']}><strong>350+</strong><span>Công ty IT</span></div>
+                        <div className={styles['auth-stat']}><strong>50K+</strong><span>Developer</span></div>
+                    </div>
                 </div>
-            </main>
+            </div>
+            <div className={styles['auth-right']}>
+                <div className={styles['auth-card']}>
+                    <div className={styles['auth-mobile-logo']}>
+                        <div className={styles['logo-icon']}>⚡</div>
+                        <span className={styles['logo-text']}>Job<span>IT</span></span>
+                    </div>
+                    <h2 className={styles['auth-card-title']}>Chào mừng trở lại 👋</h2>
+                    <p className={styles['auth-card-sub']}>
+                        Chưa có tài khoản?{' '}
+                        <Link to="/register">Đăng ký miễn phí</Link>
+                    </p>
+                    <Form name="login" onFinish={onFinish} autoComplete="off" layout="vertical">
+                        <Form.Item
+                            className={styles['form-item']}
+                            label="Email" name="username"
+                            rules={[{ required: true, message: 'Vui lòng nhập email!' }]}
+                        >
+                            <Input placeholder="developer@gmail.com" />
+                        </Form.Item>
+                        <Form.Item
+                            className={styles['form-item']}
+                            label="Mật khẩu" name="password"
+                            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                        >
+                            <Input.Password placeholder="••••••••" />
+                        </Form.Item>
+                        <Form.Item style={{ marginBottom: 0 }}>
+                            <Button type="primary" htmlType="submit" loading={isSubmit} className={styles['submit-btn']}>
+                                {isSubmit ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                    <p className={styles['auth-footer-text']} style={{ marginTop: 24 }}>
+                        Chưa có tài khoản?
+                        <Link to="/register">Đăng ký ngay</Link>
+                    </p>
+                </div>
+            </div>
         </div>
-    )
-}
+    );
+};
 
 export default LoginPage;

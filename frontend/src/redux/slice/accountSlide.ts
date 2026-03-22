@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { callFetchAccount } from '@/config/api';
 
-// First, create the thunk
 export const fetchAccount = createAsyncThunk(
     'account/fetchAccount',
     async () => {
@@ -34,6 +33,17 @@ interface IState {
     activeMenu: string;
 }
 
+const ROLE_KEY = 'user_role';
+
+const getSavedRole = () => {
+    try {
+        const saved = localStorage.getItem(ROLE_KEY);
+        return saved ? JSON.parse(saved) : { id: '', name: '', permissions: [] };
+    } catch {
+        return { id: '', name: '', permissions: [] };
+    }
+};
+
 const initialState: IState = {
     isAuthenticated: false,
     isLoading: true,
@@ -43,23 +53,15 @@ const initialState: IState = {
         id: "",
         email: "",
         name: "",
-        role: {
-            id: "",
-            name: "",
-            permissions: [],
-        },
+        role: getSavedRole(), // ✅ đọc role từ localStorage ngay khi khởi tạo
     },
-
     activeMenu: 'home'
 };
-
 
 export const accountSlide = createSlice({
     name: 'account',
     initialState,
-    // The `reducers` field lets us define reducers and generate associated actions
     reducers: {
-        // Use the PayloadAction type to declare the contents of `action.payload`
         setActiveMenu: (state, action) => {
             state.activeMenu = action.payload;
         },
@@ -69,62 +71,72 @@ export const accountSlide = createSlice({
             state.user.id = action?.payload?.id;
             state.user.email = action.payload.email;
             state.user.name = action.payload.name;
-            state.user.role = action?.payload?.role;
-
-            if (!action?.payload?.user?.role) state.user.role = {};
+            state.user.role = action?.payload?.role ?? {};
             state.user.role.permissions = action?.payload?.role?.permissions ?? [];
+            // ✅ Lưu role vào localStorage để dùng sau khi reload
+            if (action?.payload?.role) {
+                localStorage.setItem(ROLE_KEY, JSON.stringify(action.payload.role));
+            }
         },
         setLogoutAction: (state, action) => {
             localStorage.removeItem('access_token');
+            localStorage.removeItem(ROLE_KEY);
             state.isAuthenticated = false;
             state.user = {
                 id: "",
                 email: "",
                 name: "",
-                role: {
-                    id: "",
-                    name: "",
-                    permissions: [],
-                },
+                role: { id: "", name: "", permissions: [] },
             }
         },
         setRefreshTokenAction: (state, action) => {
             state.isRefreshToken = action.payload?.status ?? false;
             state.errorRefreshToken = action.payload?.message ?? "";
         }
-
     },
     extraReducers: (builder) => {
-        // Add reducers for additional action types here, and handle loading state as needed
-        builder.addCase(fetchAccount.pending, (state, action) => {
-            if (action.payload) {
-                state.isAuthenticated = false;
-                state.isLoading = true;
-            }
+        builder.addCase(fetchAccount.pending, (state) => {
+            state.isLoading = true;
         })
-
         builder.addCase(fetchAccount.fulfilled, (state, action) => {
-            if (action.payload) {
+            // ✅ BUG FIX: phải check action.payload?.user, không chỉ action.payload
+            // Nếu chỉ check action.payload → error response {statusCode, message} cũng truthy
+            // → isAuthenticated = true nhưng role rỗng → RoleBaseRoute redirect về /
+            const userData = action.payload?.user;
+            if (userData) {
                 state.isAuthenticated = true;
                 state.isLoading = false;
-                state.user.id = action?.payload?.user?.id;
-                state.user.email = action.payload.user?.email;
-                state.user.name = action.payload.user?.name;
-                state.user.role = action?.payload?.user?.role;
-                if (!action?.payload?.user?.role) state.user.role = {};
-                state.user.role.permissions = action?.payload?.user?.role?.permissions ?? [];
-            }
-        })
+                state.user.id = userData.id;
+                state.user.email = userData.email;
+                state.user.name = userData.name;
 
-        builder.addCase(fetchAccount.rejected, (state, action) => {
-            if (action.payload) {
+                const roleFromBE = userData.role;
+                if (roleFromBE) {
+                    // ✅ BUG FIX: không check roleFromBE.name nữa
+                    // Nếu check roleFromBE.name → BE không trả name thì role không được update
+                    // → fallback về localStorage/initialState có thể rỗng → redirect /
+                    state.user.role = {
+                        id: roleFromBE.id ?? state.user.role.id,
+                        name: roleFromBE.name ?? state.user.role.name,
+                        permissions: roleFromBE.permissions ?? state.user.role.permissions ?? [],
+                    };
+                    if (roleFromBE.name) {
+                        localStorage.setItem(ROLE_KEY, JSON.stringify(state.user.role));
+                    }
+                }
+            } else {
+                // ✅ BUG FIX: payload không hợp lệ → luôn phải tắt loading
+                // Nếu để isLoading = true mãi → ProtectedRoute hiện Loading vô tận
                 state.isAuthenticated = false;
                 state.isLoading = false;
             }
         })
-
+        builder.addCase(fetchAccount.rejected, (state) => {
+            state.isAuthenticated = false;
+            state.isLoading = false;
+            localStorage.removeItem(ROLE_KEY);
+        })
     },
-
 });
 
 export const {

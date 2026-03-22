@@ -99,5 +99,10 @@ public class RoleServiceImpl implements RoleService{
         rs.setResult(pRole.getContent());
         return rs;
     }
+
+    @Override
+    public Role findByName(String name) {
+        return this.roleRepository.findByName(name);
+    }
     
 }

@@ -5,9 +5,8 @@ import {
   RouterProvider,
   useLocation,
 } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { useAppDispatch } from '@/redux/hooks';
 import NotFound from 'components/share/not.found';
-import Loading from 'components/share/loading';
 import LoginPage from 'pages/auth/login';
 import RegisterPage from 'pages/auth/register';
 import LayoutAdmin from 'components/admin/layout.admin';
@@ -40,7 +39,6 @@ const LayoutClient = () => {
     if (rootRef && rootRef.current) {
       rootRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-
   }, [location]);
 
   return (
@@ -54,113 +52,76 @@ const LayoutClient = () => {
   )
 }
 
+// ✅ QUAN TRỌNG: router phải đặt NGOÀI component
+// Nếu đặt trong App() → mỗi lần Redux thay đổi (isLoading...) App re-render
+// → createBrowserRouter chạy lại → router mới → RouterProvider reset navigation
+// → navigate('/admin') bị hủy → bật về '/'
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: (<LayoutApp><LayoutClient /></LayoutApp>),
+    errorElement: <NotFound />,
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: "job", element: <ClientJobPage /> },
+      { path: "job/:id", element: <ClientJobDetailPage /> },
+      { path: "company", element: <ClientCompanyPage /> },
+      { path: "company/:id", element: <ClientCompanyDetailPage /> }
+    ],
+  },
+  {
+    path: "/admin",
+    element: (<LayoutApp><LayoutAdmin /></LayoutApp>),
+    errorElement: <NotFound />,
+    children: [
+      {
+        index: true,
+        element: <ProtectedRoute><DashboardPage /></ProtectedRoute>
+      },
+      {
+        path: "company",
+        element: <ProtectedRoute><CompanyPage /></ProtectedRoute>
+      },
+      {
+        path: "user",
+        element: <ProtectedRoute><UserPage /></ProtectedRoute>
+      },
+      {
+        path: "job",
+        children: [
+          { index: true, element: <ProtectedRoute><JobTabs /></ProtectedRoute> },
+          { path: "upsert", element: <ProtectedRoute><ViewUpsertJob /></ProtectedRoute> }
+        ]
+      },
+      {
+        path: "resume",
+        element: <ProtectedRoute><ResumePage /></ProtectedRoute>
+      },
+      {
+        path: "permission",
+        element: <ProtectedRoute><PermissionPage /></ProtectedRoute>
+      },
+      {
+        path: "role",
+        element: <ProtectedRoute><RolePage /></ProtectedRoute>
+      }
+    ],
+  },
+  { path: "/login", element: <LoginPage /> },
+  { path: "/register", element: <RegisterPage /> },
+]);
+
 export default function App() {
   const dispatch = useAppDispatch();
-  const isLoading = useAppSelector(state => state.account.isLoading);
-
+  // ✅ KHÔNG subscribe isLoading ở đây — tránh App re-render khi Redux thay đổi
 
   useEffect(() => {
     if (
       window.location.pathname === '/login'
       || window.location.pathname === '/register'
-    )
-      return;
-    dispatch(fetchAccount())
-  }, [])
+    ) return;
+    dispatch(fetchAccount());
+  }, []);
 
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: (<LayoutApp><LayoutClient /></LayoutApp>),
-      errorElement: <NotFound />,
-      children: [
-        { index: true, element: <HomePage /> },
-        { path: "job", element: <ClientJobPage /> },
-        { path: "job/:id", element: <ClientJobDetailPage /> },
-        { path: "company", element: <ClientCompanyPage /> },
-        { path: "company/:id", element: <ClientCompanyDetailPage /> }
-      ],
-    },
-
-    {
-      path: "/admin",
-      element: (<LayoutApp><LayoutAdmin /> </LayoutApp>),
-      errorElement: <NotFound />,
-      children: [
-        {
-          index: true, element:
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-        },
-        {
-          path: "company",
-          element:
-            <ProtectedRoute>
-              <CompanyPage />
-            </ProtectedRoute>
-        },
-        {
-          path: "user",
-          element:
-            <ProtectedRoute>
-              <UserPage />
-            </ProtectedRoute>
-        },
-
-        {
-          path: "job",
-          children: [
-            {
-              index: true,
-              element: <ProtectedRoute><JobTabs /></ProtectedRoute>
-            },
-            {
-              path: "upsert", element:
-                <ProtectedRoute><ViewUpsertJob /></ProtectedRoute>
-            }
-          ]
-        },
-
-        {
-          path: "resume",
-          element:
-            <ProtectedRoute>
-              <ResumePage />
-            </ProtectedRoute>
-        },
-        {
-          path: "permission",
-          element:
-            <ProtectedRoute>
-              <PermissionPage />
-            </ProtectedRoute>
-        },
-        {
-          path: "role",
-          element:
-            <ProtectedRoute>
-              <RolePage />
-            </ProtectedRoute>
-        }
-      ],
-    },
-
-
-    {
-      path: "/login",
-      element: <LoginPage />,
-    },
-
-    {
-      path: "/register",
-      element: <RegisterPage />,
-    },
-  ]);
-
-  return (
-    <>
-      <RouterProvider router={router} />
-    </>
-  )
+  return <RouterProvider router={router} />;
 }
