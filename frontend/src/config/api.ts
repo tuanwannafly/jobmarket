@@ -34,15 +34,13 @@ export const callLogout = () => {
 export const callUploadSingleFile = (file: any, folderType: string) => {
     const bodyFormData = new FormData();
     bodyFormData.append('file', file);
-    bodyFormData.append('folder', folderType);
 
+    // folder truyền qua query param, KHÔNG append vào FormData
+    // KHÔNG set Content-Type tay → axios tự set multipart/form-data; boundary=xxx
     return axios<IBackendRes<{ fileName: string }>>({
         method: 'post',
-        url: '/api/v1/files',
+        url: `/api/v1/files?folder=${folderType}`,
         data: bodyFormData,
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
     });
 }
 

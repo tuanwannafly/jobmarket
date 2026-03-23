@@ -29,13 +29,28 @@ const handleRefreshToken = async (): Promise<string | null> => {
 };
 
 instance.interceptors.request.use(function (config) {
+    // Gắn JWT token vào mọi request
     if (typeof window !== "undefined" && window && window.localStorage && window.localStorage.getItem('access_token')) {
         config.headers.Authorization = 'Bearer ' + window.localStorage.getItem('access_token');
     }
-    if (!config.headers.Accept && config.headers["Content-Type"]) {
-        config.headers.Accept = "application/json";
-        config.headers["Content-Type"] = "application/json; charset=utf-8";
+
+    // Chỉ set json headers khi KHÔNG phải multipart/form-data
+    // (multipart cần để axios tự set Content-Type kèm boundary)
+    const isMultipart = config.headers["Content-Type"] === "multipart/form-data"
+        || config.data instanceof FormData;
+
+    if (!isMultipart) {
+        if (!config.headers.Accept) {
+            config.headers.Accept = "application/json";
+        }
+        if (!config.headers["Content-Type"]) {
+            config.headers["Content-Type"] = "application/json; charset=utf-8";
+        }
+    } else {
+        // Xóa Content-Type thủ công → để axios tự set với boundary
+        delete config.headers["Content-Type"];
     }
+
     return config;
 });
 

@@ -10,10 +10,16 @@ import lombok.Setter;
 @Setter
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ResUploadFileDTO {
     private String fileName;
     private Instant uploadedAt;
+
+    
+
+    public ResUploadFileDTO(String fileName, Instant uploadedAt) {
+        this.fileName = fileName;
+        this.uploadedAt = uploadedAt;
+    }
 
     public String getFileName() {
         return fileName;

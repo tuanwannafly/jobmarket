@@ -40,34 +40,34 @@ public class FileController {
         this.fileService = fileService;
     }
 
-    @PostMapping("/files")
-    @ApiMessage("Upload single file")
-    public ResponseEntity<ResUploadFileDTO> upload(
-            @RequestParam(name = "file", required = false) MultipartFile file,
-            @RequestParam("folder") String folder
+    // @PostMapping("/files")
+    // @ApiMessage("Upload single file")
+    // public ResponseEntity<ResUploadFileDTO> upload(
+    //         @RequestParam(name = "file", required = false) MultipartFile file,
+    //         @RequestParam("folder") String folder
 
-    ) throws URISyntaxException, IOException, StorageException {
-        // skip validate
-        if (file == null || file.isEmpty()) {
-            throw new StorageException("File is empty. Please upload a file.");
-        }
-        String fileName = file.getOriginalFilename();
-        List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png", "doc", "docx");
-        boolean isValid = allowedExtensions.stream().anyMatch(item -> fileName.toLowerCase().endsWith(item));
+    // ) throws URISyntaxException, IOException, StorageException {
+    //     // skip validate
+    //     if (file == null || file.isEmpty()) {
+    //         throw new StorageException("File is empty. Please upload a file.");
+    //     }
+    //     String fileName = file.getOriginalFilename();
+    //     List<String> allowedExtensions = Arrays.asList("pdf", "jpg", "jpeg", "png", "doc", "docx");
+    //     boolean isValid = allowedExtensions.stream().anyMatch(item -> fileName.toLowerCase().endsWith(item));
 
-        if (!isValid) {
-            throw new StorageException("Invalid file extension. only allows " + allowedExtensions.toString());
-        }
-        // create a directory if not exist
-        this.fileService.createDirectory(baseURI + folder);
+    //     if (!isValid) {
+    //         throw new StorageException("Invalid file extension. only allows " + allowedExtensions.toString());
+    //     }
+    //     // create a directory if not exist
+    //     this.fileService.createDirectory(baseURI + folder);
 
-        // store file
-        String uploadFile = this.fileService.store(file, folder);
+    //     // store file
+    //     String uploadFile = this.fileService.store(file, folder);
 
-        ResUploadFileDTO res = new ResUploadFileDTO(uploadFile, Instant.now());
+    //     ResUploadFileDTO res = new ResUploadFileDTO(uploadFile, Instant.now());
 
-        return ResponseEntity.ok().body(res);
-    }
+    //     return ResponseEntity.ok().body(res);
+    // }
 
     @GetMapping("/files")
     @ApiMessage("Download a file")
@@ -93,5 +93,19 @@ public class FileController {
                 .contentLength(fileLength)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
+    }
+
+    @PostMapping("/files")
+    @ApiMessage("Upload single file")
+    public ResponseEntity<ResUploadFileDTO> upload(
+            @RequestParam(name = "file", required = false) MultipartFile file,
+            @RequestParam(name = "folder", defaultValue = "general") String folder
+    ) throws IOException, StorageException {
+
+        // store() bên trong đã validate file và extension
+        String fileUrl = this.fileService.store(file, folder);
+
+        ResUploadFileDTO res = new ResUploadFileDTO(fileUrl, Instant.now());
+        return ResponseEntity.ok().body(res);
     }
 }
