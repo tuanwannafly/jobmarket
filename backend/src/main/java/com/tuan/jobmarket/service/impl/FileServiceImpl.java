@@ -108,28 +108,28 @@ public class FileServiceImpl implements FileService {
         return secureUrl;
     }
 
-    @Override
-    public long getFileLength(String fileName, String folder) throws URISyntaxException {
-        URI uri = new URI(baseURI + folder + "/" + fileName);
-        Path path = Paths.get(uri);
+    // @Override
+    // public long getFileLength(String fileName, String folder) throws URISyntaxException {
+    //     URI uri = new URI(baseURI + folder + "/" + fileName);
+    //     Path path = Paths.get(uri);
 
-        File tmpDir = new File(path.toString());
+    //     File tmpDir = new File(path.toString());
 
-        // file không tồn tại, hoặc file là 1 director => return 0
-        if (!tmpDir.exists() || tmpDir.isDirectory())
-            return 0;
-        return tmpDir.length();
-    }
+    //     // file không tồn tại, hoặc file là 1 director => return 0
+    //     if (!tmpDir.exists() || tmpDir.isDirectory())
+    //         return 0;
+    //     return tmpDir.length();
+    // }
 
-    @Override
-    public InputStreamResource getResource(String fileName, String folder)
-            throws URISyntaxException, FileNotFoundException {
-        URI uri = new URI(baseURI + folder + "/" + fileName);
-        Path path = Paths.get(uri);
+    // @Override
+    // public InputStreamResource getResource(String fileName, String folder)
+    //         throws URISyntaxException, FileNotFoundException {
+    //     URI uri = new URI(baseURI + folder + "/" + fileName);
+    //     Path path = Paths.get(uri);
 
-        File file = new File(path.toString());
-        return new InputStreamResource(new FileInputStream(file));
-    }
+    //     File file = new File(path.toString());
+    //     return new InputStreamResource(new FileInputStream(file));
+    // }
 
     @Override
     public void delete(String publicId) throws IOException {
