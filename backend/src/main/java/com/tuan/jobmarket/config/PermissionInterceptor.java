@@ -38,19 +38,27 @@ public class PermissionInterceptor implements HandlerInterceptor {
         System.out.println(">>> requestURI= " + requestURI);
 
         // check permission
-        String email = SecurityUtil.getCurrentUserLogin().isPresent() == true
+        String email = SecurityUtil.getCurrentUserLogin().isPresent()
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
+
         if (email != null && !email.isEmpty()) {
             User user = this.userService.handleGetUserByUsername(email);
             if (user != null) {
                 Role role = user.getRole();
                 if (role != null) {
+
+                    // ✅ SUPER_ADMIN bypass hoàn toàn — không check permission
+                    if ("SUPER_ADMIN".equals(role.getName())) {
+                        return true;
+                    }
+
                     List<Permission> permissions = role.getPermissions();
-                    boolean isAllow = permissions.stream().anyMatch(item -> item.getApiPath().equals(path)
+                    boolean isAllow = permissions.stream().anyMatch(item ->
+                            item.getApiPath().equals(path)
                             && item.getMethod().equals(httpMethod));
 
-                    if (isAllow == false) {
+                    if (!isAllow) {
                         throw new IdInvalidException("Bạn không có quyền truy cập endpoint này.");
                     }
                 } else {
