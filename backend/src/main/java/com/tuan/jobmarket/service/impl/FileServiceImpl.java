@@ -41,23 +41,23 @@ public class FileServiceImpl implements FileService {
     // @Value("${tuanjobmarket.upload-file.base-path}")
     // private String baseURI;
 
-    @Override
-    public void createDirectory(String folder) throws URISyntaxException {
-        URI uri = new URI(folder);
-        Path path = Paths.get(uri);
-        File tmpDir = new File(path.toString());
-        if (!tmpDir.isDirectory()) {
-            try {
-                Files.createDirectory(tmpDir.toPath());
-                System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + tmpDir.toPath());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println(">>> SKIP MAKING DIRECTORY, ALREADY EXISTS");
-        }
+    // @Override
+    // public void createDirectory(String folder) throws URISyntaxException {
+    //     URI uri = new URI(folder);
+    //     Path path = Paths.get(uri);
+    //     File tmpDir = new File(path.toString());
+    //     if (!tmpDir.isDirectory()) {
+    //         try {
+    //             Files.createDirectory(tmpDir.toPath());
+    //             System.out.println(">>> CREATE NEW DIRECTORY SUCCESSFUL, PATH = " + tmpDir.toPath());
+    //         } catch (IOException e) {
+    //             e.printStackTrace();
+    //         }
+    //     } else {
+    //         System.out.println(">>> SKIP MAKING DIRECTORY, ALREADY EXISTS");
+    //     }
 
-    }
+    // }
 
     @Override
     public String store(MultipartFile file, String folder) throws IOException, StorageException {
