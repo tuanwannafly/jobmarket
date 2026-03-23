@@ -57,7 +57,7 @@ const ClientJobDetailPage = () => {
     }, [id]);
 
     const logoSrc = jobDetail?.company?.logo
-        ? `${import.meta.env.VITE_BACKEND_URL}/storage/company/${jobDetail.company.logo}`
+        ? (jobDetail.company.logo.startsWith('http') ? jobDetail.company.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${jobDetail.company.logo}`)
         : null;
 
     const timeAgo   = jobDetail?.updatedAt

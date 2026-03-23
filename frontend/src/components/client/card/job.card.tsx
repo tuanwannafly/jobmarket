@@ -78,7 +78,7 @@ const JobCard = (props: IProps) => {
                                         <div className={styles['card-job-left']}>
                                             <img
                                                 alt="logo"
-                                                src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${item?.company?.logo}`}
+                                                src={(item?.company?.logo?.startsWith('http') ? item.company.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${item?.company?.logo}`)}
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).src =
                                                         'https://placehold.co/52x52/f1f5f9/94a3b8?text=IT';

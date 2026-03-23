@@ -64,7 +64,7 @@ const UserResume = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {c?.logo && (
                             <img
-                                src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${c.logo}`}
+                                src={(c.logo?.startsWith('http') ? c.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${c.logo}`)}
                                 style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', border: '1px solid #e2e8f0' }}
                                 alt=""
                             />
@@ -106,7 +106,7 @@ const UserResume = () => {
             title: '', key: 'action',
             render: (_: any, r: IResume) => (
                 <a
-                    href={`${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`}
+                    href={(r.url?.startsWith('http') ? r.url : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`)}
                     target="_blank"
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,

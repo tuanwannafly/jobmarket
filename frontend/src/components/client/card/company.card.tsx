@@ -80,7 +80,7 @@ const CompanyCard = (props: IProps) => {
                                     {/* LOGO */}
                                     <div className={styles['company-logo']}>
                                         <img
-                                            src={`${import.meta.env.VITE_BACKEND_URL}/storage/company/${item?.logo}`}
+                                            src={(item?.logo?.startsWith('http') ? item.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${item?.logo}`)}
                                             alt={item.name}
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).src =
