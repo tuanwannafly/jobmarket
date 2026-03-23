@@ -39,7 +39,7 @@ const ClientCompanyDetailPage = () => {
     }, [id]);
 
     const logoSrc = companyDetail?.logo
-        ? `${import.meta.env.VITE_BACKEND_URL}/storage/company/${companyDetail.logo}`
+        ? (companyDetail.logo.startsWith('http') ? companyDetail.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${companyDetail.logo}`)
         : null;
 
     const founded = companyDetail?.createdAt

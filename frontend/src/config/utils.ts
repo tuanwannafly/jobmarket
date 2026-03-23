@@ -94,3 +94,14 @@ export const groupByPermission = (data: any[]): { module: string; permissions: I
         return { module: key, permissions: value as IPermission[] };
     });
 };
+
+/**
+ * Trả về URL đúng cho logo/file:
+ * - Nếu là URL đầy đủ (Cloudinary) → dùng thẳng
+ * - Nếu là filename cũ → ghép BACKEND_URL/storage/{folder}/{filename}
+ */
+export const getFileUrl = (value: string | undefined | null, folder: string): string => {
+    if (!value) return '';
+    if (value.startsWith('http')) return value;
+    return `${import.meta.env.VITE_BACKEND_URL}/storage/${folder}/${value}`;
+};
