@@ -102,7 +102,7 @@ export interface IJob {
     description: string;
     startDate: Date;
     endDate: Date;
-    active: boolean;
+    isActive: boolean;
 
     createdBy?: string;
     isDeleted?: boolean;
