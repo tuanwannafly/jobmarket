@@ -9,3 +9,8 @@ CREATE TABLE IF NOT EXISTS subscriber_skill (
     skill_id BIGINT NOT NULL,
     PRIMARY KEY (subscriber_id, skill_id)
 );
+CREATE TABLE IF NOT EXISTS job_skill (
+    job_id BIGINT NOT NULL,
+    skill_id BIGINT NOT NULL,
+    PRIMARY KEY (job_id, skill_id)
+);
