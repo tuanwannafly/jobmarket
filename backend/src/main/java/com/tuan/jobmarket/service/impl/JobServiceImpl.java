@@ -68,7 +68,7 @@ public class JobServiceImpl implements JobService{
         dto.setLevel(currentJob.getLevel());
         dto.setStartDate(currentJob.getStartDate());
         dto.setEndDate(currentJob.getEndDate());
-        dto.setActive(currentJob.isActive());
+        dto.setIsActive(currentJob.isIsActive());
         dto.setCreatedAt(currentJob.getCreatedAt());
         dto.setCreatedBy(currentJob.getCreatedBy());
 
@@ -111,7 +111,7 @@ public class JobServiceImpl implements JobService{
         jobInDB.setLevel(j.getLevel());
         jobInDB.setStartDate(j.getStartDate());
         jobInDB.setEndDate(j.getEndDate());
-        jobInDB.setActive(j.isActive());
+        jobInDB.setIsActive(j.isIsActive());
 
         // update job
         Job currentJob = this.jobRepository.save(jobInDB);
@@ -126,7 +126,7 @@ public class JobServiceImpl implements JobService{
         dto.setLevel(currentJob.getLevel());
         dto.setStartDate(currentJob.getStartDate());
         dto.setEndDate(currentJob.getEndDate());
-        dto.setActive(currentJob.isActive());
+        dto.setIsActive(currentJob.isIsActive());
         dto.setUpdatedAt(currentJob.getUpdatedAt());
         dto.setUpdatedBy(currentJob.getUpdatedBy());
 
