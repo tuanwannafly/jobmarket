@@ -120,7 +120,7 @@ const ViewUpsertJob = (props: any) => {
                 name: values.name,
                 skills: arrSkills,
                 company: {
-                    id: cp && cp.length > 0 ? cp[0] : "",
+                    id: cp && cp.length > 0 ? +cp[0] : 0,
                     name: values.company.label,
                     logo: cp && cp.length > 1 ? cp[1] : ""
                 },
@@ -131,7 +131,7 @@ const ViewUpsertJob = (props: any) => {
                 description: value,
                 startDate: /[0-9]{2}[/][0-9]{2}[/][0-9]{4}$/.test(values.startDate) ? dayjs(values.startDate, 'DD/MM/YYYY').toDate() : values.startDate,
                 endDate: /[0-9]{2}[/][0-9]{2}[/][0-9]{4}$/.test(values.endDate) ? dayjs(values.endDate, 'DD/MM/YYYY').toDate() : values.endDate,
-                active: values.active,
+                isActive: values.active,
 
             }
 
@@ -153,7 +153,7 @@ const ViewUpsertJob = (props: any) => {
                 name: values.name,
                 skills: arrSkills,
                 company: {
-                    id: cp && cp.length > 0 ? cp[0] : "",
+                    id: cp && cp.length > 0 ? +cp[0] : 0,
                     name: values.company.label,
                     logo: cp && cp.length > 1 ? cp[1] : ""
                 },
@@ -164,7 +164,7 @@ const ViewUpsertJob = (props: any) => {
                 description: value,
                 startDate: dayjs(values.startDate, 'DD/MM/YYYY').toDate(),
                 endDate: dayjs(values.endDate, 'DD/MM/YYYY').toDate(),
-                active: values.active
+                isActive: values.active
             }
 
             const res = await callCreateJob(job);

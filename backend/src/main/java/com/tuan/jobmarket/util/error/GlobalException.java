@@ -79,4 +79,12 @@ public class GlobalException {
         res.setMessage(ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
     }
+    @ExceptionHandler(value = { RuntimeException.class })
+    public ResponseEntity<RestResponse<Object>> handleRuntimeException(Exception ex) {
+        RestResponse<Object> res = new RestResponse<Object>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        res.setMessage(ex.getMessage());
+        res.setError("Runtime exception occurred");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
+    }
 }
