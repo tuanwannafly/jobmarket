@@ -38,8 +38,8 @@ public class FileServiceImpl implements FileService {
     }
 
 
-    @Value("${tuanjobmarket.upload-file.base-path}")
-    private String baseURI;
+    // @Value("${tuanjobmarket.upload-file.base-path}")
+    // private String baseURI;
 
     @Override
     public void createDirectory(String folder) throws URISyntaxException {
