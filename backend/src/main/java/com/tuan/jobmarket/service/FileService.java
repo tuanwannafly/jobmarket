@@ -12,9 +12,6 @@ import com.tuan.jobmarket.util.error.StorageException;
 
 @Service
 public interface FileService {
-    void createDirectory(String folder) throws URISyntaxException ;
-    long getFileLength(String fileName, String folder) throws URISyntaxException;
-    InputStreamResource getResource(String fileName, String folder) throws URISyntaxException, FileNotFoundException;
     String store(MultipartFile file, String folder) throws IOException, StorageException;
     void delete(String publicId) throws IOException;
 }
