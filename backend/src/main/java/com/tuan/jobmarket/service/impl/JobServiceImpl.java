@@ -54,6 +54,14 @@ public class JobServiceImpl implements JobService{
             List<Skill> dbSkills = this.skillRepository.findByIdIn(reqSkills);
             job.setSkills(dbSkills);
         }
+        if (job.getCompany() != null) {
+            Optional<Company> cOptional = this.companyRepository.findById(job.getCompany().getId());
+            if (cOptional.isPresent()) {
+                job.setCompany(cOptional.get());
+            } else {
+                throw new RuntimeException("Company not found");
+            }
+        }
 
         // create job
         Job currentJob = this.jobRepository.save(job);
