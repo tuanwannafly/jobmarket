@@ -4,11 +4,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuan.jobmarket.domain.Job;
 import com.tuan.jobmarket.domain.Skill;
 import com.tuan.jobmarket.domain.Subscriber;
+import com.tuan.jobmarket.domain.response.ResultPaginationDTO;
 import com.tuan.jobmarket.domain.response.email.ResEmailJob;
 import com.tuan.jobmarket.repository.JobRepository;
 import com.tuan.jobmarket.repository.SkillRepository;
@@ -17,17 +21,16 @@ import com.tuan.jobmarket.service.EmailService;
 import com.tuan.jobmarket.service.SubscriberService;
 
 @Service
-public class SubscriberServiceImpl implements SubscriberService{
+public class SubscriberServiceImpl implements SubscriberService {
 
     private final SubscriberRepository subscriberRepository;
     private final SkillRepository skillRepository;
     private final JobRepository jobRepository;
     private final EmailService emailService;
 
-
-
-    public SubscriberServiceImpl(SubscriberRepository subscriberRepository, SkillRepository skillRepository,
-            JobRepository jobRepository, EmailService emailService) {
+    public SubscriberServiceImpl(SubscriberRepository subscriberRepository,
+            SkillRepository skillRepository, JobRepository jobRepository,
+            EmailService emailService) {
         this.subscriberRepository = subscriberRepository;
         this.skillRepository = skillRepository;
         this.jobRepository = jobRepository;
@@ -41,27 +44,20 @@ public class SubscriberServiceImpl implements SubscriberService{
 
     @Override
     public Subscriber create(Subscriber subs) {
-        // check skills
         if (subs.getSkills() != null) {
-            List<Long> reqSkills = subs.getSkills()
-                    .stream().map(x -> x.getId())
-                    .collect(Collectors.toList());
-
+            List<Long> reqSkills = subs.getSkills().stream()
+                    .map(x -> x.getId()).collect(Collectors.toList());
             List<Skill> dbSkills = this.skillRepository.findByIdIn(reqSkills);
             subs.setSkills(dbSkills);
         }
-
         return this.subscriberRepository.save(subs);
     }
 
     @Override
     public Subscriber update(Subscriber subsDB, Subscriber subsRequest) {
-        // check skills
         if (subsRequest.getSkills() != null) {
-            List<Long> reqSkills = subsRequest.getSkills()
-                    .stream().map(x -> x.getId())
-                    .collect(Collectors.toList());
-
+            List<Long> reqSkills = subsRequest.getSkills().stream()
+                    .map(x -> x.getId()).collect(Collectors.toList());
             List<Skill> dbSkills = this.skillRepository.findByIdIn(reqSkills);
             subsDB.setSkills(dbSkills);
         }
@@ -71,9 +67,30 @@ public class SubscriberServiceImpl implements SubscriberService{
     @Override
     public Subscriber findById(long id) {
         Optional<Subscriber> subsOptional = this.subscriberRepository.findById(id);
-        if (subsOptional.isPresent())
-            return subsOptional.get();
-        return null;
+        return subsOptional.isPresent() ? subsOptional.get() : null;
+    }
+
+    // ✅ FIX: Implement delete
+    @Override
+    public void delete(long id) {
+        this.subscriberRepository.deleteById(id);
+    }
+
+    // ✅ FIX: Implement findAll with pagination
+    @Override
+    public ResultPaginationDTO findAll(Specification<Subscriber> spec, Pageable pageable) {
+        Page<Subscriber> page = this.subscriberRepository.findAll(spec, pageable);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(page.getTotalPages());
+        mt.setTotal(page.getTotalElements());
+
+        rs.setMeta(mt);
+        rs.setResult(page.getContent());
+        return rs;
     }
 
     @Override
@@ -83,7 +100,8 @@ public class SubscriberServiceImpl implements SubscriberService{
         res.setSalary(job.getSalary());
         res.setCompany(new ResEmailJob.CompanyEmail(job.getCompany().getName()));
         List<Skill> skills = job.getSkills();
-        List<ResEmailJob.SkillEmail> s = skills.stream().map(skill -> new ResEmailJob.SkillEmail(skill.getName()))
+        List<ResEmailJob.SkillEmail> s = skills.stream()
+                .map(skill -> new ResEmailJob.SkillEmail(skill.getName()))
                 .collect(Collectors.toList());
         res.setSkills(s);
         return res;
@@ -98,16 +116,13 @@ public class SubscriberServiceImpl implements SubscriberService{
                 if (listSkills != null && listSkills.size() > 0) {
                     List<Job> listJobs = this.jobRepository.findBySkillsIn(listSkills);
                     if (listJobs != null && listJobs.size() > 0) {
-
-                        List<ResEmailJob> arr = listJobs.stream().map(
-                                job -> this.convertJobToSendEmail(job)).collect(Collectors.toList());
-
+                        List<ResEmailJob> arr = listJobs.stream()
+                                .map(job -> this.convertJobToSendEmail(job))
+                                .collect(Collectors.toList());
                         this.emailService.sendEmailFromTemplateSync(
                                 sub.getEmail(),
                                 "Cơ hội việc làm hot đang chờ đón bạn, khám phá ngay",
-                                "job",
-                                sub.getName(),
-                                arr);
+                                "job", sub.getName(), arr);
                     }
                 }
             }
@@ -118,5 +133,4 @@ public class SubscriberServiceImpl implements SubscriberService{
     public Subscriber findByEmail(String email) {
         return this.subscriberRepository.findByEmail(email);
     }
-    
 }
