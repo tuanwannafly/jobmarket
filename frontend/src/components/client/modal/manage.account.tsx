@@ -35,45 +35,25 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 
 /* ════════════════════════════════════════════════════════
    CV Preview Modal — renders PDF and DOCX inline
+   PDF  → iframe (browser native renderer)
+   DOCX → Microsoft Office Online embed (no CORS issues)
 ═════════════════════════════════════════════════════════ */
-const loadScript = (src: string): Promise<void> =>
-    new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-        const s = document.createElement('script');
-        s.src = src;
-        s.onload = () => resolve();
-        s.onerror = () => reject();
-        document.head.appendChild(s);
-    });
-
 const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [docxHtml, setDocxHtml] = useState('');
+    if (!url) return null;
 
-    const isPdf = url.toLowerCase().includes('.pdf');
-    const isDocx = url.toLowerCase().includes('.docx') || url.toLowerCase().includes('.doc');
+    const lower = url.toLowerCase();
+    const isPdf  = lower.includes('.pdf');
+    const isDocx = lower.includes('.docx') || lower.includes('.doc');
 
-    useEffect(() => {
-        if (!visible || !url) return;
-        setError('');
-        setDocxHtml('');
+    // For PDF on Cloudinary raw: swap resource type so browser gets inline PDF
+    const pdfSrc = isPdf && url.includes('/raw/upload/')
+        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/')
+        : url;
 
-        if (isPdf) return; // iframe handles it directly
+    // Microsoft Office Online Viewer works with any public URL, no CORS, no login
+    const officeSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
 
-        if (isDocx) {
-            setLoading(true);
-            loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')
-                .then(() => fetch(url))
-                .then(r => {
-                    if (!r.ok) throw new Error('fetch failed');
-                    return r.arrayBuffer();
-                })
-                .then(buffer => (window as any).mammoth.convertToHtml({ arrayBuffer: buffer }))
-                .then((result: any) => { setDocxHtml(result.value); setLoading(false); })
-                .catch(() => { setError('Không thể tải file. Vui lòng dùng nút Tải xuống.'); setLoading(false); });
-        }
-    }, [visible, url]);
+    const embedSrc = isPdf ? pdfSrc : isDocx ? officeSrc : null;
 
     return (
         <Modal
@@ -84,44 +64,27 @@ const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boole
                     <Button icon={<FileTextOutlined />}>Tải xuống</Button>
                 </a>
             }
-            width="82vw"
+            width="85vw"
             style={{ top: 16 }}
             title={<span><FileTextOutlined style={{ marginRight: 8 }} />Xem CV</span>}
             destroyOnClose
         >
-            <div style={{ height: '78vh', overflow: 'auto', background: '#f1f5f9', borderRadius: 8 }}>
-                {loading && (
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#64748b', fontSize: 14 }}>
-                        Đang tải file...
-                    </div>
-                )}
-                {error && (
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: 16 }}>
+            <div style={{ height: '80vh', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
+                {embedSrc ? (
+                    <iframe
+                        src={embedSrc}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        title="CV Preview"
+                        allow="fullscreen"
+                    />
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
                         <FileTextOutlined style={{ fontSize: 48, color: '#cbd5e1' }} />
-                        <div style={{ color: '#64748b', textAlign: 'center', fontSize: 14 }}>{error}</div>
+                        <div style={{ color: '#64748b', fontSize: 14 }}>Định dạng file không hỗ trợ xem trực tuyến.</div>
                         <a href={url} target="_blank" rel="noopener noreferrer">
                             <Button type="primary" icon={<FileTextOutlined />}>Tải xuống để xem</Button>
                         </a>
                     </div>
-                )}
-                {isPdf && !loading && !error && (
-                    <iframe
-                        src={url}
-                        style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
-                        title="CV Preview"
-                    />
-                )}
-                {isDocx && docxHtml && !loading && (
-                    <div
-                        style={{
-                            background: '#fff', padding: '40px 56px',
-                            maxWidth: 820, margin: '16px auto',
-                            boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
-                            borderRadius: 6, fontSize: 14, lineHeight: 1.85,
-                            color: '#1e293b',
-                        }}
-                        dangerouslySetInnerHTML={{ __html: docxHtml }}
-                    />
                 )}
             </div>
         </Modal>
