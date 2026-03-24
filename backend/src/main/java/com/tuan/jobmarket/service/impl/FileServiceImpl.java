@@ -94,34 +94,27 @@ public class FileServiceImpl implements FileService {
             resourceType = "image";
         }
 
-        // 4. Upload lên Cloudinary
-        //    use_filename=true  → giữ tên gốc
-        //    unique_filename=true → tự thêm suffix tránh trùng
-        //    overwrite=false    → không ghi đè file cũ
+        // 4. Tạo public_id thủ công: tên gốc (không dấu) + timestamp + extension
+        //    Ví dụ: "resume_myfile_1714000000000.pdf"
+        //    Quan trọng: public_id CÓ extension → secure_url Cloudinary cũng sẽ có extension
+        //    → trình duyệt nhận dạng đúng loại file khi xem và tải xuống.
+        String baseName = originalFilename.substring(0, dotIdx >= 0 ? dotIdx : originalFilename.length())
+                .replaceAll("[^a-zA-Z0-9_\\-]", "_"); // loại bỏ ký tự đặc biệt
+        String publicId = folder + "/" + baseName + "_" + System.currentTimeMillis() + fileExt;
+
         @SuppressWarnings("unchecked")
         Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
-                        "folder", folder,
+                        "public_id", publicId,      // đặt thủ công → URL có extension
                         "resource_type", resourceType,
-                        "use_filename", true,
-                        "unique_filename", true,
                         "overwrite", false));
 
-        // 5. Trả về secure URL (https)
-        //    Cloudinary raw URL đôi khi không có extension ở cuối path → gắn thêm để
-        //    browser/viewer nhận dạng đúng loại file khi xem và tải xuống.
+        // 5. Trả về secure URL (https) từ Cloudinary
+        //    Vì public_id đã chứa extension (.pdf/.docx/.doc), secure_url sẽ tự động có đuôi đúng.
         String secureUrl = (String) uploadResult.get("secure_url");
         if (secureUrl == null) {
             throw new StorageException("Upload to Cloudinary failed. No URL returned.");
-        }
-
-        // Đảm bảo extension xuất hiện ở cuối URL (bỏ query params trước khi kiểm tra)
-        if (!fileExt.isEmpty()) {
-            String urlPath = secureUrl.contains("?") ? secureUrl.substring(0, secureUrl.indexOf('?')) : secureUrl;
-            if (!urlPath.toLowerCase().endsWith(fileExt)) {
-                secureUrl = secureUrl + fileExt;
-            }
         }
 
         return secureUrl;

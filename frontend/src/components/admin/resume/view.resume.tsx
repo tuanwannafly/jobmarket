@@ -1,11 +1,42 @@
 import { callUpdateResumeStatus } from "@/config/api";
 import { IResume } from "@/types/backend";
 import { Button, Descriptions, Drawer, Form, Select, message, notification } from "antd";
-import { FileTextOutlined } from "@ant-design/icons";
+import { FileTextOutlined, DownloadOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 import CVPreviewModal from "@/components/share/CVPreviewModal";
 const { Option } = Select;
+
+/** Tải file qua fetch+Blob để đảm bảo đúng tên + extension khi download cross-origin */
+async function downloadFile(url: string): Promise<void> {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Fetch failed");
+        const blob = await resp.blob();
+        const clean = url.split("?")[0];
+        const extMatch = clean.toLowerCase().match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
+        const ext = extMatch ? extMatch[1] : "";
+        const parts = clean.split("/");
+        let filename = parts[parts.length - 1] || "cv-file";
+        if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) filename = `${filename}.${ext}`;
+        const mimeMap: Record<string, string> = {
+            pdf: "application/pdf",
+            doc: "application/msword",
+            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        };
+        const typedBlob = new Blob([blob], { type: mimeMap[ext] ?? "application/octet-stream" });
+        const objUrl = URL.createObjectURL(typedBlob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objUrl);
+    } catch {
+        window.open(url, "_blank");
+    }
+}
 
 interface IProps {
     onClose: (v: boolean) => void;
@@ -18,6 +49,7 @@ interface IProps {
 /* ─── Main Drawer ─────────────────────────────────── */
 const ViewDetailResume = (props: IProps) => {
     const [isSubmit, setIsSubmit] = useState<boolean>(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [previewVisible, setPreviewVisible] = useState(false);
     const { onClose, open, dataInit, setDataInit, reloadTable } = props;
     const [form] = Form.useForm();
@@ -42,27 +74,9 @@ const ViewDetailResume = (props: IProps) => {
         return () => form.resetFields();
     }, [dataInit]);
 
-    // Build download URL với đúng extension cho Cloudinary raw files
-    const buildCvDownloadUrl = (rawUrl: string): string => {
-        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
-        try {
-            const clean = rawUrl.split('?')[0].toLowerCase();
-            const extMatch = clean.match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
-            const ext = extMatch ? extMatch[1] : '';
-            const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
-            const segments = pathAfterUpload.split('/');
-            let filename = segments[segments.length - 1].split('?')[0];
-            if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) filename = `${filename}.${ext}`;
-            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
-        } catch {
-            return rawUrl;
-        }
-    };
-
     const cvUrl = dataInit?.url
         ? (dataInit.url.startsWith('http') ? dataInit.url : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${dataInit.url}`)
         : '';
-    const cvDownloadUrl = buildCvDownloadUrl(cvUrl);
 
     return (
         <>
@@ -128,9 +142,18 @@ const ViewDetailResume = (props: IProps) => {
                                 >
                                     Xem CV
                                 </Button>
-                                <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer">
-                                    <Button size="small">Tải xuống</Button>
-                                </a>
+                                <Button
+                                    size="small"
+                                    icon={<DownloadOutlined />}
+                                    loading={isDownloading}
+                                    onClick={async () => {
+                                        setIsDownloading(true);
+                                        await downloadFile(cvUrl);
+                                        setIsDownloading(false);
+                                    }}
+                                >
+                                    Tải xuống
+                                </Button>
                             </div>
                         </Descriptions.Item>
                     )}
