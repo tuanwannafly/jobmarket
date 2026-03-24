@@ -1,9 +1,10 @@
 import { callUpdateResumeStatus } from "@/config/api";
 import { IResume } from "@/types/backend";
-import { Button, Descriptions, Drawer, Form, Modal, Select, message, notification } from "antd";
+import { Button, Descriptions, Drawer, Form, Select, message, notification } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
+import CVPreviewModal from "@/components/share/CVPreviewModal";
 const { Option } = Select;
 
 interface IProps {
@@ -13,68 +14,6 @@ interface IProps {
     setDataInit: (v: any) => void;
     reloadTable: () => void;
 }
-
-/* ─── CV Preview Modal ─────────────────────────────── */
-const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
-    if (!url) return null;
-
-    // Lấy extension từ URL (bỏ query params trước)
-    const cleanUrl = url.split('?')[0].toLowerCase();
-    const isPdf = cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf');
-    const isDocx = cleanUrl.endsWith('.docx') || cleanUrl.endsWith('.doc');
-
-    // PDF → Google Docs Viewer (hoạt động với mọi nguồn kể cả Cloudinary raw)
-    // doc/docx → Office Online Viewer
-    // fallback → Google Docs Viewer
-    const embedSrc = isPdf
-        ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-        : isDocx
-            ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
-            : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-
-    // URL tải xuống: dùng fl_attachment:filename.ext để Cloudinary trả đúng tên + extension
-    // Ví dụ: /raw/upload/v1/resume/myfile_abc.pdf → /raw/upload/fl_attachment:myfile_abc.pdf/v1/resume/myfile_abc.pdf
-    const buildDownloadUrl = (rawUrl: string): string => {
-        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
-        try {
-            const pathAfterUpload = rawUrl.split('/raw/upload/')[1]; // "v123/resume/myfile_abc.pdf"
-            const segments = pathAfterUpload.split('/');
-            const rawFilename = segments[segments.length - 1].split('?')[0]; // "myfile_abc.pdf"
-            // Đảm bảo filename có đúng extension
-            const ext = cleanUrl.includes('.pdf') ? '.pdf' : cleanUrl.includes('.docx') ? '.docx' : cleanUrl.includes('.doc') ? '.doc' : '';
-            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
-            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
-        } catch {
-            return rawUrl;
-        }
-    };
-    const downloadUrl = buildDownloadUrl(url);
-
-    return (
-        <Modal
-            open={visible}
-            onCancel={onClose}
-            footer={
-                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
-                    <Button icon={<FileTextOutlined />}>Tải xuống</Button>
-                </a>
-            }
-            width="85vw"
-            style={{ top: 16 }}
-            title={<span><FileTextOutlined style={{ marginRight: 8 }} />Xem CV</span>}
-            destroyOnClose
-        >
-            <div style={{ height: '80vh', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
-                <iframe
-                    src={embedSrc}
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                    title="CV Preview"
-                    allow="fullscreen"
-                />
-            </div>
-        </Modal>
-    );
-};
 
 /* ─── Main Drawer ─────────────────────────────────── */
 const ViewDetailResume = (props: IProps) => {
@@ -103,16 +42,17 @@ const ViewDetailResume = (props: IProps) => {
         return () => form.resetFields();
     }, [dataInit]);
 
-    // Helper build download URL dùng chung
+    // Build download URL với đúng extension cho Cloudinary raw files
     const buildCvDownloadUrl = (rawUrl: string): string => {
         if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
         try {
-            const lower = rawUrl.split('?')[0].toLowerCase();
+            const clean = rawUrl.split('?')[0].toLowerCase();
+            const extMatch = clean.match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
+            const ext = extMatch ? extMatch[1] : '';
             const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
             const segments = pathAfterUpload.split('/');
-            const rawFilename = segments[segments.length - 1].split('?')[0];
-            const ext = lower.includes('.pdf') ? '.pdf' : lower.includes('.docx') ? '.docx' : lower.includes('.doc') ? '.doc' : '';
-            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
+            let filename = segments[segments.length - 1].split('?')[0];
+            if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) filename = `${filename}.${ext}`;
             return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
         } catch {
             return rawUrl;
