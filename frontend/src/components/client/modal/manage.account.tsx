@@ -34,26 +34,26 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 };
 
 /* ════════════════════════════════════════════════════════
-   CV Preview Modal — renders PDF and DOCX inline
-   PDF  → iframe (browser native renderer)
-   DOCX → Microsoft Office Online embed (no CORS issues)
+   CV Preview Modal
+   Strategy:
+   - Cloudinary raw URL (no extension) → Office Online (handles both DOCX & PDF)
+   - URL has .pdf extension → native iframe
+   - URL has .docx/.doc extension → Office Online
+   - Fallback → Office Online (works for most formats)
 ═════════════════════════════════════════════════════════ */
 const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
     if (!url) return null;
 
     const lower = url.toLowerCase();
-    const isPdf  = lower.includes('.pdf');
-    const isDocx = lower.includes('.docx') || lower.includes('.doc');
+    const isCloudinaryRaw = url.includes('res.cloudinary.com') && url.includes('/raw/upload/');
+    const isPdfByExt = lower.includes('.pdf') && !isCloudinaryRaw;
 
-    // For PDF on Cloudinary raw: swap resource type so browser gets inline PDF
-    const pdfSrc = isPdf && url.includes('/raw/upload/')
-        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/')
-        : url;
-
-    // Microsoft Office Online Viewer works with any public URL, no CORS, no login
-    const officeSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
-
-    const embedSrc = isPdf ? pdfSrc : isDocx ? officeSrc : null;
+    // Native PDF iframe only when we're sure it's a PDF with extension
+    // Everything else (Cloudinary raw, docx, doc, unknown) → Office Online
+    // Office Online handles: docx, doc, pdf, pptx, xlsx — all in one
+    const embedSrc = isPdfByExt
+        ? url
+        : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
 
     return (
         <Modal
@@ -70,22 +70,12 @@ const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boole
             destroyOnClose
         >
             <div style={{ height: '80vh', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
-                {embedSrc ? (
-                    <iframe
-                        src={embedSrc}
-                        style={{ width: '100%', height: '100%', border: 'none' }}
-                        title="CV Preview"
-                        allow="fullscreen"
-                    />
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
-                        <FileTextOutlined style={{ fontSize: 48, color: '#cbd5e1' }} />
-                        <div style={{ color: '#64748b', fontSize: 14 }}>Định dạng file không hỗ trợ xem trực tuyến.</div>
-                        <a href={url} target="_blank" rel="noopener noreferrer">
-                            <Button type="primary" icon={<FileTextOutlined />}>Tải xuống để xem</Button>
-                        </a>
-                    </div>
-                )}
+                <iframe
+                    src={embedSrc}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="CV Preview"
+                    allow="fullscreen"
+                />
             </div>
         </Modal>
     );
