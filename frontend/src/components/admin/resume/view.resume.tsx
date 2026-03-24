@@ -17,20 +17,32 @@ interface IProps {
 /* ─── CV Preview Modal ─────────────────────────────── */
 const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
     if (!url) return null;
-    const lower = url.toLowerCase();
-    const isCloudinaryRaw = url.includes('res.cloudinary.com') && url.includes('/raw/upload/');
-    const isPdfByExt = lower.includes('.pdf') && !isCloudinaryRaw;
 
-    const embedSrc = isPdfByExt
-        ? url
-        : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    // Lấy extension từ URL (bỏ query params trước)
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    const isPdf = cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf');
+    const isDocx = cleanUrl.endsWith('.docx') || cleanUrl.endsWith('.doc');
+
+    // PDF → Google Docs Viewer (hoạt động với mọi nguồn kể cả Cloudinary raw)
+    // doc/docx → Office Online Viewer
+    // fallback → Google Docs Viewer
+    const embedSrc = isPdf
+        ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+        : isDocx
+            ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
+            : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+    // URL tải xuống: với Cloudinary raw thêm fl_attachment để force download đúng định dạng
+    const downloadUrl = url.includes('res.cloudinary.com') && url.includes('/raw/upload/')
+        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment/')
+        : url;
 
     return (
         <Modal
             open={visible}
             onCancel={onClose}
             footer={
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
                     <Button icon={<FileTextOutlined />}>Tải xuống</Button>
                 </a>
             }
