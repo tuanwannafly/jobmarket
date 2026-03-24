@@ -34,11 +34,107 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 };
 
 /* ════════════════════════════════════════════════════════
+   CV Preview Modal — renders PDF and DOCX inline
+═════════════════════════════════════════════════════════ */
+const loadScript = (src: string): Promise<void> =>
+    new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject();
+        document.head.appendChild(s);
+    });
+
+const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [docxHtml, setDocxHtml] = useState('');
+
+    const isPdf = url.toLowerCase().includes('.pdf');
+    const isDocx = url.toLowerCase().includes('.docx') || url.toLowerCase().includes('.doc');
+
+    useEffect(() => {
+        if (!visible || !url) return;
+        setError('');
+        setDocxHtml('');
+
+        if (isPdf) return; // iframe handles it directly
+
+        if (isDocx) {
+            setLoading(true);
+            loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js')
+                .then(() => fetch(url))
+                .then(r => {
+                    if (!r.ok) throw new Error('fetch failed');
+                    return r.arrayBuffer();
+                })
+                .then(buffer => (window as any).mammoth.convertToHtml({ arrayBuffer: buffer }))
+                .then((result: any) => { setDocxHtml(result.value); setLoading(false); })
+                .catch(() => { setError('Không thể tải file. Vui lòng dùng nút Tải xuống.'); setLoading(false); });
+        }
+    }, [visible, url]);
+
+    return (
+        <Modal
+            open={visible}
+            onCancel={onClose}
+            footer={
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                    <Button icon={<FileTextOutlined />}>Tải xuống</Button>
+                </a>
+            }
+            width="82vw"
+            style={{ top: 16 }}
+            title={<span><FileTextOutlined style={{ marginRight: 8 }} />Xem CV</span>}
+            destroyOnClose
+        >
+            <div style={{ height: '78vh', overflow: 'auto', background: '#f1f5f9', borderRadius: 8 }}>
+                {loading && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#64748b', fontSize: 14 }}>
+                        Đang tải file...
+                    </div>
+                )}
+                {error && (
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', gap: 16 }}>
+                        <FileTextOutlined style={{ fontSize: 48, color: '#cbd5e1' }} />
+                        <div style={{ color: '#64748b', textAlign: 'center', fontSize: 14 }}>{error}</div>
+                        <a href={url} target="_blank" rel="noopener noreferrer">
+                            <Button type="primary" icon={<FileTextOutlined />}>Tải xuống để xem</Button>
+                        </a>
+                    </div>
+                )}
+                {isPdf && !loading && !error && (
+                    <iframe
+                        src={url}
+                        style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }}
+                        title="CV Preview"
+                    />
+                )}
+                {isDocx && docxHtml && !loading && (
+                    <div
+                        style={{
+                            background: '#fff', padding: '40px 56px',
+                            maxWidth: 820, margin: '16px auto',
+                            boxShadow: '0 1px 6px rgba(0,0,0,0.08)',
+                            borderRadius: 6, fontSize: 14, lineHeight: 1.85,
+                            color: '#1e293b',
+                        }}
+                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                    />
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+/* ════════════════════════════════════════════════════════
    TAB 1 — Rải CV
 ═════════════════════════════════════════════════════════ */
 const UserResume = ({ open }: { open: boolean }) => {
     const [listCV, setListCV] = useState<IResume[]>([]);
     const [isFetching, setIsFetching] = useState(false);
+    const [previewFile, setPreviewFile] = useState<{ url: string; visible: boolean }>({ url: '', visible: false });
 
     useEffect(() => {
         if (!open) return;
@@ -100,46 +196,23 @@ const UserResume = ({ open }: { open: boolean }) => {
                 const rawUrl = r.url?.startsWith('http')
                     ? r.url
                     : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
-
-                // Cloudinary raw URL: convert to viewable format
-                // For docx/doc: replace /raw/upload/ with /image/upload/ + fl_attachment:false + pg_1/
-                // For pdf: use Google Docs Viewer
-                const getViewUrl = (url: string) => {
-                    if (url.includes('res.cloudinary.com')) {
-                        const isPdf = url.toLowerCase().includes('.pdf');
-                        if (isPdf) {
-                            // PDF on Cloudinary: change resource type raw -> image, add fl_attachment:false
-                            return url.replace('/raw/upload/', '/image/upload/fl_attachment:false/');
-                        } else {
-                            // docx/doc: use Google Docs Viewer
-                            return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
-                        }
-                    }
-                    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
-                };
-
-                const viewUrl = getViewUrl(rawUrl);
-
                 return (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <a
-                            href={viewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <span
+                            onClick={() => setPreviewFile({ url: rawUrl, visible: true })}
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 4,
                                 fontSize: 12, fontWeight: 700, color: '#2563EB',
-                                textDecoration: 'none',
+                                cursor: 'pointer',
                             }}
                         >
                             <FileTextOutlined /> Xem CV
-                        </a>
+                        </span>
                         <a
                             href={rawUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 4,
                                 fontSize: 12, fontWeight: 700, color: '#64748b',
                                 textDecoration: 'none',
                             }}
@@ -155,6 +228,11 @@ const UserResume = ({ open }: { open: boolean }) => {
 
     return (
         <div>
+            <CVPreviewModal
+                url={previewFile.url}
+                visible={previewFile.visible}
+                onClose={() => setPreviewFile({ url: '', visible: false })}
+            />
             {listCV.length === 0 && !isFetching ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
                     <FileTextOutlined style={{ fontSize: 40, marginBottom: 12, display: 'block' }} />
