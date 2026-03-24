@@ -1,6 +1,7 @@
 import { callUpdateResumeStatus } from "@/config/api";
 import { IResume } from "@/types/backend";
-import { Badge, Button, Descriptions, Drawer, Form, Select, message, notification } from "antd";
+import { Button, Descriptions, Drawer, Form, Modal, Select, message, notification } from "antd";
+import { FileTextOutlined } from "@ant-design/icons";
 import dayjs from 'dayjs';
 import { useState, useEffect } from 'react';
 const { Option } = Select;
@@ -12,70 +13,124 @@ interface IProps {
     setDataInit: (v: any) => void;
     reloadTable: () => void;
 }
+
+/* ─── CV Preview Modal ─────────────────────────────── */
+const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
+    if (!url) return null;
+    const lower = url.toLowerCase();
+    const isPdf  = lower.includes('.pdf');
+    const isDocx = lower.includes('.docx') || lower.includes('.doc');
+
+    const pdfSrc = isPdf && url.includes('/raw/upload/')
+        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment:false/')
+        : url;
+    const officeSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    const embedSrc = isPdf ? pdfSrc : isDocx ? officeSrc : null;
+
+    return (
+        <Modal
+            open={visible}
+            onCancel={onClose}
+            footer={
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                    <Button icon={<FileTextOutlined />}>Tải xuống</Button>
+                </a>
+            }
+            width="85vw"
+            style={{ top: 16 }}
+            title={<span><FileTextOutlined style={{ marginRight: 8 }} />Xem CV</span>}
+            destroyOnClose
+        >
+            <div style={{ height: '80vh', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
+                {embedSrc ? (
+                    <iframe
+                        src={embedSrc}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        title="CV Preview"
+                        allow="fullscreen"
+                    />
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16 }}>
+                        <FileTextOutlined style={{ fontSize: 48, color: '#cbd5e1' }} />
+                        <div style={{ color: '#64748b', fontSize: 14 }}>Định dạng file không hỗ trợ xem trực tuyến.</div>
+                        <a href={url} target="_blank" rel="noopener noreferrer">
+                            <Button type="primary" icon={<FileTextOutlined />}>Tải xuống để xem</Button>
+                        </a>
+                    </div>
+                )}
+            </div>
+        </Modal>
+    );
+};
+
+/* ─── Main Drawer ─────────────────────────────────── */
 const ViewDetailResume = (props: IProps) => {
     const [isSubmit, setIsSubmit] = useState<boolean>(false);
+    const [previewVisible, setPreviewVisible] = useState(false);
     const { onClose, open, dataInit, setDataInit, reloadTable } = props;
     const [form] = Form.useForm();
 
     const handleChangeStatus = async () => {
         setIsSubmit(true);
-
         const status = form.getFieldValue('status');
-        const res = await callUpdateResumeStatus(dataInit?.id, status)
+        const res = await callUpdateResumeStatus(dataInit?.id, status);
         if (res.data) {
             message.success("Update Resume status thành công!");
             setDataInit(null);
             onClose(false);
             reloadTable();
         } else {
-            notification.error({
-                message: 'Có lỗi xảy ra',
-                description: res.message
-            });
+            notification.error({ message: 'Có lỗi xảy ra', description: res.message });
         }
-
         setIsSubmit(false);
-    }
+    };
 
     useEffect(() => {
-        if (dataInit) {
-            form.setFieldValue("status", dataInit.status)
-        }
+        if (dataInit) form.setFieldValue("status", dataInit.status);
         return () => form.resetFields();
-    }, [dataInit])
+    }, [dataInit]);
+
+    const cvUrl = dataInit?.url
+        ? (dataInit.url.startsWith('http') ? dataInit.url : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${dataInit.url}`)
+        : '';
 
     return (
         <>
+            <CVPreviewModal
+                url={cvUrl}
+                visible={previewVisible}
+                onClose={() => setPreviewVisible(false)}
+            />
             <Drawer
                 title="Thông Tin Resume"
                 placement="right"
-                onClose={() => { onClose(false); setDataInit(null) }}
+                onClose={() => { onClose(false); setDataInit(null); }}
                 open={open}
                 width={"40vw"}
                 maskClosable={false}
                 destroyOnClose
                 extra={
-
-                    <Button loading={isSubmit} type="primary" onClick={handleChangeStatus}>
-                        Change Status
-                    </Button>
-
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        {cvUrl && (
+                            <Button
+                                icon={<FileTextOutlined />}
+                                onClick={() => setPreviewVisible(true)}
+                            >
+                                Xem CV
+                            </Button>
+                        )}
+                        <Button loading={isSubmit} type="primary" onClick={handleChangeStatus}>
+                            Change Status
+                        </Button>
+                    </div>
                 }
             >
                 <Descriptions title="" bordered column={2} layout="vertical">
                     <Descriptions.Item label="Email">{dataInit?.email}</Descriptions.Item>
                     <Descriptions.Item label="Trạng thái">
-                        <Form
-                            form={form}
-                        >
+                        <Form form={form}>
                             <Form.Item name={"status"}>
-                                <Select
-                                    // placeholder="Select a option and change input text above"
-                                    // onChange={onGenderChange}
-                                    // allowClear
-                                    style={{ width: "100%" }}
-                                    defaultValue={dataInit?.status}
-                                >
+                                <Select style={{ width: "100%" }} defaultValue={dataInit?.status}>
                                     <Option value="PENDING">PENDING</Option>
                                     <Option value="REVIEWING">REVIEWING</Option>
                                     <Option value="APPROVED">APPROVED</Option>
@@ -83,22 +138,36 @@ const ViewDetailResume = (props: IProps) => {
                                 </Select>
                             </Form.Item>
                         </Form>
-
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tên Job">
-                        {dataInit?.job?.name}
-
+                    <Descriptions.Item label="Tên Job">{dataInit?.job?.name}</Descriptions.Item>
+                    <Descriptions.Item label="Tên Công Ty">{dataInit?.companyName}</Descriptions.Item>
+                    <Descriptions.Item label="Ngày tạo">
+                        {dataInit?.createdAt ? dayjs(dataInit.createdAt).format('DD-MM-YYYY HH:mm:ss') : ""}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tên Công Ty">
-                        {dataInit?.companyName}
+                    <Descriptions.Item label="Ngày sửa">
+                        {dataInit?.updatedAt ? dayjs(dataInit.updatedAt).format('DD-MM-YYYY HH:mm:ss') : ""}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Ngày tạo">{dataInit && dataInit.createdAt ? dayjs(dataInit.createdAt).format('DD-MM-YYYY HH:mm:ss') : ""}</Descriptions.Item>
-                    <Descriptions.Item label="Ngày sửa">{dataInit && dataInit.updatedAt ? dayjs(dataInit.updatedAt).format('DD-MM-YYYY HH:mm:ss') : ""}</Descriptions.Item>
-
+                    {cvUrl && (
+                        <Descriptions.Item label="File CV" span={2}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <Button
+                                    size="small"
+                                    icon={<FileTextOutlined />}
+                                    type="primary"
+                                    onClick={() => setPreviewVisible(true)}
+                                >
+                                    Xem CV
+                                </Button>
+                                <a href={cvUrl} target="_blank" rel="noopener noreferrer">
+                                    <Button size="small">Tải xuống</Button>
+                                </a>
+                            </div>
+                        </Descriptions.Item>
+                    )}
                 </Descriptions>
             </Drawer>
         </>
-    )
-}
+    );
+};
 
 export default ViewDetailResume;
