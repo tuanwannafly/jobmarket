@@ -130,10 +130,14 @@ public class ResumeController {
             }
         }
 
-        Specification<Resume> jobInSpec = filterSpecificationConverter.convert(filterBuilder.field("job")
-                .in(filterBuilder.input(arrJobIds)).get());
-
-        Specification<Resume> finalSpec = jobInSpec.and(spec);
+        Specification<Resume> finalSpec;
+        if (arrJobIds == null || arrJobIds.isEmpty()) {
+            finalSpec = spec;
+        } else {
+            Specification<Resume> jobInSpec = filterSpecificationConverter.convert(filterBuilder.field("job")
+                    .in(filterBuilder.input(arrJobIds)).get());
+            finalSpec = jobInSpec.and(spec);
+        }
 
         return ResponseEntity.ok().body(this.resumeService.fetchAllResume(finalSpec, pageable));
     }

@@ -97,11 +97,11 @@ const JobPage = () => {
         },
         {
             title: 'Trạng thái',
-            dataIndex: 'active',
+            dataIndex: 'isActive',
             render(dom, entity, index, action, schema) {
                 return <>
-                    <Tag color={entity.active ? "lime" : "red"} >
-                        {entity.active ? "ACTIVE" : "INACTIVE"}
+                    <Tag color={entity.isActive ? "lime" : "red"} >
+                        {entity.isActive ? "ACTIVE" : "INACTIVE"}
                     </Tag>
                 </>
             },
