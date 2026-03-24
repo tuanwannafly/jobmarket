@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuan.jobmarket.domain.constant.LevelEnum;
 import com.tuan.jobmarket.util.SecurityUtil;
 
@@ -53,6 +54,7 @@ public class Job {
 
     private Instant startDate;
     private Instant endDate;
+    @JsonProperty("isActive")
     private boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;
@@ -162,10 +164,12 @@ public class Job {
         this.endDate = endDate;
     }
 
+    @JsonProperty("isActive")
     public boolean isIsActive() {
         return isActive;
     }
 
+    @JsonProperty("isActive")
     public void setIsActive(boolean isActive) {
         this.isActive = isActive;
     }
