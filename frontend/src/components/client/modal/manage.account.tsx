@@ -100,10 +100,26 @@ const UserResume = ({ open }: { open: boolean }) => {
                 const rawUrl = r.url?.startsWith('http')
                     ? r.url
                     : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
-                const isPdf = rawUrl.toLowerCase().includes('.pdf') || rawUrl.toLowerCase().includes('/raw/upload/');
-                const viewUrl = isPdf
-                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`
-                    : rawUrl;
+
+                // Cloudinary raw URL: convert to viewable format
+                // For docx/doc: replace /raw/upload/ with /image/upload/ + fl_attachment:false + pg_1/
+                // For pdf: use Google Docs Viewer
+                const getViewUrl = (url: string) => {
+                    if (url.includes('res.cloudinary.com')) {
+                        const isPdf = url.toLowerCase().includes('.pdf');
+                        if (isPdf) {
+                            // PDF on Cloudinary: change resource type raw -> image, add fl_attachment:false
+                            return url.replace('/raw/upload/', '/image/upload/fl_attachment:false/');
+                        } else {
+                            // docx/doc: use Google Docs Viewer
+                            return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
+                        }
+                    }
+                    return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
+                };
+
+                const viewUrl = getViewUrl(rawUrl);
+
                 return (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                         <a
@@ -120,7 +136,6 @@ const UserResume = ({ open }: { open: boolean }) => {
                         </a>
                         <a
                             href={rawUrl}
-                            download
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
