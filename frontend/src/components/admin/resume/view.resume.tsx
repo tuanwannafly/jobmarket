@@ -32,10 +32,23 @@ const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boole
             ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
             : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
 
-    // URL tải xuống: với Cloudinary raw thêm fl_attachment để force download đúng định dạng
-    const downloadUrl = url.includes('res.cloudinary.com') && url.includes('/raw/upload/')
-        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment/')
-        : url;
+    // URL tải xuống: dùng fl_attachment:filename.ext để Cloudinary trả đúng tên + extension
+    // Ví dụ: /raw/upload/v1/resume/myfile_abc.pdf → /raw/upload/fl_attachment:myfile_abc.pdf/v1/resume/myfile_abc.pdf
+    const buildDownloadUrl = (rawUrl: string): string => {
+        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+        try {
+            const pathAfterUpload = rawUrl.split('/raw/upload/')[1]; // "v123/resume/myfile_abc.pdf"
+            const segments = pathAfterUpload.split('/');
+            const rawFilename = segments[segments.length - 1].split('?')[0]; // "myfile_abc.pdf"
+            // Đảm bảo filename có đúng extension
+            const ext = cleanUrl.includes('.pdf') ? '.pdf' : cleanUrl.includes('.docx') ? '.docx' : cleanUrl.includes('.doc') ? '.doc' : '';
+            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
+            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+        } catch {
+            return rawUrl;
+        }
+    };
+    const downloadUrl = buildDownloadUrl(url);
 
     return (
         <Modal
@@ -90,9 +103,26 @@ const ViewDetailResume = (props: IProps) => {
         return () => form.resetFields();
     }, [dataInit]);
 
+    // Helper build download URL dùng chung
+    const buildCvDownloadUrl = (rawUrl: string): string => {
+        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+        try {
+            const lower = rawUrl.split('?')[0].toLowerCase();
+            const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
+            const segments = pathAfterUpload.split('/');
+            const rawFilename = segments[segments.length - 1].split('?')[0];
+            const ext = lower.includes('.pdf') ? '.pdf' : lower.includes('.docx') ? '.docx' : lower.includes('.doc') ? '.doc' : '';
+            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
+            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+        } catch {
+            return rawUrl;
+        }
+    };
+
     const cvUrl = dataInit?.url
         ? (dataInit.url.startsWith('http') ? dataInit.url : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${dataInit.url}`)
         : '';
+    const cvDownloadUrl = buildCvDownloadUrl(cvUrl);
 
     return (
         <>
@@ -158,7 +188,7 @@ const ViewDetailResume = (props: IProps) => {
                                 >
                                     Xem CV
                                 </Button>
-                                <a href={cvUrl} target="_blank" rel="noopener noreferrer">
+                                <a href={cvDownloadUrl} target="_blank" rel="noopener noreferrer">
                                     <Button size="small">Tải xuống</Button>
                                 </a>
                             </div>
