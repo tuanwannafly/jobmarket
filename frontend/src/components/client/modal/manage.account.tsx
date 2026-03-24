@@ -96,19 +96,45 @@ const UserResume = ({ open }: { open: boolean }) => {
         },
         {
             title: '', key: 'action',
-            render: (_: any, r: IResume) => (
-                <a
-                    href={(r.url?.startsWith('http') ? r.url : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`)}
-                    target="_blank"
-                    style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        fontSize: 12, fontWeight: 700, color: '#2563EB',
-                        textDecoration: 'none',
-                    }}
-                >
-                    <FileTextOutlined /> Xem CV
-                </a>
-            ),
+            render: (_: any, r: IResume) => {
+                const rawUrl = r.url?.startsWith('http')
+                    ? r.url
+                    : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
+                const isPdf = rawUrl.toLowerCase().includes('.pdf') || rawUrl.toLowerCase().includes('/raw/upload/');
+                const viewUrl = isPdf
+                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(rawUrl)}&embedded=true`
+                    : rawUrl;
+                return (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <a
+                            href={viewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: 12, fontWeight: 700, color: '#2563EB',
+                                textDecoration: 'none',
+                            }}
+                        >
+                            <FileTextOutlined /> Xem CV
+                        </a>
+                        <a
+                            href={rawUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                fontSize: 12, fontWeight: 700, color: '#64748b',
+                                textDecoration: 'none',
+                            }}
+                            title="Tải xuống"
+                        >
+                            ↓
+                        </a>
+                    </div>
+                );
+            },
         },
     ];
 
