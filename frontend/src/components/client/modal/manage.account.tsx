@@ -1,6 +1,6 @@
 import {
-    Avatar, Badge, Button, Col, Form, Input, Modal,
-    Row, Select, Table, Tabs, Tag, message, notification
+    Avatar, Button, Col, Form, Input, Modal,
+    Row, Select, Table, Tabs, message, notification
 } from "antd";
 import { isMobile } from "react-device-detect";
 import type { TabsProps } from 'antd';
@@ -17,9 +17,11 @@ import {
     MonitorOutlined, UserOutlined, MailOutlined, EnvironmentOutlined,
     LockOutlined, FileTextOutlined, BellOutlined, IdcardOutlined,
     CheckCircleOutlined, CalendarOutlined, ManOutlined, WomanOutlined,
+    DownloadOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setUserLoginInfo } from "@/redux/slice/accountSlide";
+import CVPreviewModal from "@/components/share/CVPreviewModal";
 
 interface IProps {
     open: boolean;
@@ -33,71 +35,22 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
     REJECTED: { color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   label: 'Từ chối'    },
 };
 
-/* ════════════════════════════════════════════════════════
-   CV Preview Modal
-   Strategy:
-   - PDF (kể cả Cloudinary raw) → Google Docs Viewer (hỗ trợ mọi nguồn)
-   - doc/docx → Office Online Viewer
-   - Fallback → Google Docs Viewer
-═════════════════════════════════════════════════════════ */
-const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
-    if (!url) return null;
-
-    // Lấy extension từ URL sạch (bỏ query params)
-    const cleanUrl = url.split('?')[0].toLowerCase();
-    const isPdf = cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf');
-    const isDocx = cleanUrl.endsWith('.docx') || cleanUrl.endsWith('.doc');
-
-    // PDF → Google Docs Viewer (hoạt động với mọi nguồn kể cả Cloudinary raw)
-    // doc/docx → Office Online Viewer
-    // fallback → Google Docs Viewer
-    const embedSrc = isPdf
-        ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-        : isDocx
-            ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
-            : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-
-    // URL tải xuống: dùng fl_attachment:filename.ext để Cloudinary trả đúng tên + extension
-    const buildDownloadUrl = (rawUrl: string): string => {
-        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
-        try {
-            const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
-            const segments = pathAfterUpload.split('/');
-            const rawFilename = segments[segments.length - 1].split('?')[0];
-            const ext = cleanUrl.includes('.pdf') ? '.pdf' : cleanUrl.includes('.docx') ? '.docx' : cleanUrl.includes('.doc') ? '.doc' : '';
-            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
-            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
-        } catch {
-            return rawUrl;
-        }
-    };
-    const downloadUrl = buildDownloadUrl(url);
-
-    return (
-        <Modal
-            open={visible}
-            onCancel={onClose}
-            footer={
-                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
-                    <Button icon={<FileTextOutlined />}>Tải xuống</Button>
-                </a>
-            }
-            width="85vw"
-            style={{ top: 16 }}
-            title={<span><FileTextOutlined style={{ marginRight: 8 }} />Xem CV</span>}
-            destroyOnClose
-        >
-            <div style={{ height: '80vh', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden' }}>
-                <iframe
-                    src={embedSrc}
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                    title="CV Preview"
-                    allow="fullscreen"
-                />
-            </div>
-        </Modal>
-    );
-};
+/* ─── Cloudinary download URL helper ─────────────────── */
+function buildDownloadUrl(rawUrl: string): string {
+    if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+    try {
+        const clean = rawUrl.split('?')[0].toLowerCase();
+        const extMatch = clean.match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
+        const ext = extMatch ? extMatch[1] : '';
+        const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
+        const segments = pathAfterUpload.split('/');
+        let filename = segments[segments.length - 1].split('?')[0];
+        if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) filename = `${filename}.${ext}`;
+        return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+    } catch {
+        return rawUrl;
+    }
+}
 
 /* ════════════════════════════════════════════════════════
    TAB 1 — Rải CV
@@ -167,19 +120,7 @@ const UserResume = ({ open }: { open: boolean }) => {
                 const rawUrl = r.url?.startsWith('http')
                     ? r.url
                     : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
-                // Build download URL với đúng filename + extension
-                const dlUrl = (() => {
-                    if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
-                    try {
-                        const lower = rawUrl.split('?')[0].toLowerCase();
-                        const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
-                        const segments = pathAfterUpload.split('/');
-                        const rawFilename = segments[segments.length - 1].split('?')[0];
-                        const ext = lower.includes('.pdf') ? '.pdf' : lower.includes('.docx') ? '.docx' : lower.includes('.doc') ? '.doc' : '';
-                        const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
-                        return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
-                    } catch { return rawUrl; }
-                })();
+                const dlUrl = buildDownloadUrl(rawUrl);
                 return (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                         <span
@@ -202,7 +143,7 @@ const UserResume = ({ open }: { open: boolean }) => {
                             }}
                             title="Tải xuống"
                         >
-                            ↓
+                            <DownloadOutlined style={{ fontSize: 14 }} />
                         </a>
                     </div>
                 );
