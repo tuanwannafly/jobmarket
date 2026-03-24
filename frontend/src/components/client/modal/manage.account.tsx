@@ -57,10 +57,21 @@ const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boole
             ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
             : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
 
-    // URL tải xuống: với Cloudinary raw thêm fl_attachment để force download đúng định dạng
-    const downloadUrl = url.includes('res.cloudinary.com') && url.includes('/raw/upload/')
-        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment/')
-        : url;
+    // URL tải xuống: dùng fl_attachment:filename.ext để Cloudinary trả đúng tên + extension
+    const buildDownloadUrl = (rawUrl: string): string => {
+        if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+        try {
+            const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
+            const segments = pathAfterUpload.split('/');
+            const rawFilename = segments[segments.length - 1].split('?')[0];
+            const ext = cleanUrl.includes('.pdf') ? '.pdf' : cleanUrl.includes('.docx') ? '.docx' : cleanUrl.includes('.doc') ? '.doc' : '';
+            const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
+            return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+        } catch {
+            return rawUrl;
+        }
+    };
+    const downloadUrl = buildDownloadUrl(url);
 
     return (
         <Modal
@@ -156,6 +167,19 @@ const UserResume = ({ open }: { open: boolean }) => {
                 const rawUrl = r.url?.startsWith('http')
                     ? r.url
                     : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
+                // Build download URL với đúng filename + extension
+                const dlUrl = (() => {
+                    if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+                    try {
+                        const lower = rawUrl.split('?')[0].toLowerCase();
+                        const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
+                        const segments = pathAfterUpload.split('/');
+                        const rawFilename = segments[segments.length - 1].split('?')[0];
+                        const ext = lower.includes('.pdf') ? '.pdf' : lower.includes('.docx') ? '.docx' : lower.includes('.doc') ? '.doc' : '';
+                        const filename = rawFilename.includes('.') ? rawFilename : rawFilename + ext;
+                        return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+                    } catch { return rawUrl; }
+                })();
                 return (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                         <span
@@ -169,7 +193,7 @@ const UserResume = ({ open }: { open: boolean }) => {
                             <FileTextOutlined /> Xem CV
                         </span>
                         <a
-                            href={rawUrl}
+                            href={dlUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
