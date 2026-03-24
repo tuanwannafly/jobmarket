@@ -36,18 +36,19 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 /* ════════════════════════════════════════════════════════
    TAB 1 — Rải CV
 ═════════════════════════════════════════════════════════ */
-const UserResume = () => {
+const UserResume = ({ open }: { open: boolean }) => {
     const [listCV, setListCV] = useState<IResume[]>([]);
     const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
+        if (!open) return;
         (async () => {
             setIsFetching(true);
             const res = await callFetchResumeByUser();
             if (res?.data) setListCV(res.data.result as IResume[]);
             setIsFetching(false);
         })();
-    }, []);
+    }, [open]);
 
     const columns: ColumnsType<IResume> = [
         {
@@ -59,20 +60,11 @@ const UserResume = () => {
         {
             title: 'Công ty', key: 'company',
             render: (_: any, record: IResume) => {
-                const c = record.companyId as any;
+                const companyName = (record as any).companyName;
                 return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {c?.logo && (
-                            <img
-                                src={(c.logo?.startsWith('http') ? c.logo : `${import.meta.env.VITE_BACKEND_URL}/storage/company/${c.logo}`)}
-                                style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', border: '1px solid #e2e8f0' }}
-                                alt=""
-                            />
-                        )}
-                        <span style={{ fontWeight: 600, color: '#0F172A', fontSize: 13 }}>
-                            {c?.name ?? '—'}
-                        </span>
-                    </div>
+                    <span style={{ fontWeight: 600, color: '#0F172A', fontSize: 13 }}>
+                        {companyName ?? '—'}
+                    </span>
                 );
             },
         },
@@ -496,7 +488,7 @@ const ManageAccount = ({ open, onClose }: IProps) => {
                     <FileTextOutlined /> Rải CV
                 </span>
             ),
-            children: <UserResume />,
+            children: <UserResume open={open} />,
         },
         {
             key: 'email-by-skills',
