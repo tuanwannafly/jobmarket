@@ -6,11 +6,6 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuan.jobmarket.domain.constant.LevelEnum;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class ResUpdateJobDTO {
     private long id;
     private String name;
