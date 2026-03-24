@@ -36,31 +36,38 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
 /* ════════════════════════════════════════════════════════
    CV Preview Modal
    Strategy:
-   - Cloudinary raw URL (no extension) → Office Online (handles both DOCX & PDF)
-   - URL has .pdf extension → native iframe
-   - URL has .docx/.doc extension → Office Online
-   - Fallback → Office Online (works for most formats)
+   - PDF (kể cả Cloudinary raw) → Google Docs Viewer (hỗ trợ mọi nguồn)
+   - doc/docx → Office Online Viewer
+   - Fallback → Google Docs Viewer
 ═════════════════════════════════════════════════════════ */
 const CVPreviewModal = ({ url, visible, onClose }: { url: string; visible: boolean; onClose: () => void }) => {
     if (!url) return null;
 
-    const lower = url.toLowerCase();
-    const isCloudinaryRaw = url.includes('res.cloudinary.com') && url.includes('/raw/upload/');
-    const isPdfByExt = lower.includes('.pdf') && !isCloudinaryRaw;
+    // Lấy extension từ URL sạch (bỏ query params)
+    const cleanUrl = url.split('?')[0].toLowerCase();
+    const isPdf = cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf');
+    const isDocx = cleanUrl.endsWith('.docx') || cleanUrl.endsWith('.doc');
 
-    // Native PDF iframe only when we're sure it's a PDF with extension
-    // Everything else (Cloudinary raw, docx, doc, unknown) → Office Online
-    // Office Online handles: docx, doc, pdf, pptx, xlsx — all in one
-    const embedSrc = isPdfByExt
-        ? url
-        : `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    // PDF → Google Docs Viewer (hoạt động với mọi nguồn kể cả Cloudinary raw)
+    // doc/docx → Office Online Viewer
+    // fallback → Google Docs Viewer
+    const embedSrc = isPdf
+        ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+        : isDocx
+            ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
+            : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+    // URL tải xuống: với Cloudinary raw thêm fl_attachment để force download đúng định dạng
+    const downloadUrl = url.includes('res.cloudinary.com') && url.includes('/raw/upload/')
+        ? url.replace('/raw/upload/', '/raw/upload/fl_attachment/')
+        : url;
 
     return (
         <Modal
             open={visible}
             onCancel={onClose}
             footer={
-                <a href={url} target="_blank" rel="noopener noreferrer">
+                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
                     <Button icon={<FileTextOutlined />}>Tải xuống</Button>
                 </a>
             }
