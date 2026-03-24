@@ -6,12 +6,8 @@ import com.tuan.jobmarket.domain.constant.ResumeStateEnum;
 
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
 
-@Getter
-@Setter
+
 public class ResFetchResumeDTO {
     private long id;
     private String email;
@@ -136,8 +132,6 @@ public class ResFetchResumeDTO {
         this.job = job;
     }
 
-    @Getter
-    @Setter
     public static class UserResume {
         private long id;
         private String name;
@@ -164,8 +158,7 @@ public class ResFetchResumeDTO {
         }
     }
 
-    @Getter
-    @Setter
+
     public static class JobResume {
         private long id;
         private String name;
