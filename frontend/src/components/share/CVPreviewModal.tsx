@@ -2,12 +2,11 @@
  * CVPreviewModal — shared component dùng ở cả admin và client
  *
  * Chiến lược xem:
- *  - PDF  → PDF.js (Mozilla) via CDN — render trực tiếp, không cần Google Docs Viewer
+ *  - PDF  → Google Docs Viewer — không bị CORS với Cloudinary URL
  *  - DOCX → Office Online Viewer (Microsoft)
  *
  * Chiến lược tải:
- *  - Cloudinary raw URL → thêm fl_attachment transform để giữ đúng tên + extension
- *  - URL thường → tải thẳng
+ *  - Dùng fetch + Blob để tải cross-origin, đảm bảo file có đúng tên + extension
  */
 
 import { Button, Modal, Spin } from "antd";
@@ -29,44 +28,69 @@ function getExt(url: string): string {
     return match ? match[1] : "";
 }
 
+/** Lấy tên file từ URL (phần cuối path, bỏ query params) */
+function getFilename(url: string): string {
+    const clean = url.split("?")[0];
+    const parts = clean.split("/");
+    return parts[parts.length - 1] || "cv-file";
+}
+
 /**
- * Với Cloudinary raw URL, thêm fl_attachment transform để tải đúng tên file.
- * Ví dụ: /raw/upload/v1/resume/cv_abc123.pdf
- *      → /raw/upload/fl_attachment:cv_abc123.pdf/v1/resume/cv_abc123.pdf
+ * Tải file qua fetch + Blob rồi trigger download.
+ * Cách này đảm bảo:
+ *  1. File cross-origin (Cloudinary) được tải đúng
+ *  2. Tên file + extension được giữ nguyên
+ *  3. Trình duyệt không cố mở inline thay vì tải xuống
  */
-function buildDownloadUrl(rawUrl: string): string {
-    if (!rawUrl.includes("res.cloudinary.com") || !rawUrl.includes("/raw/upload/")) {
-        return rawUrl;
-    }
+async function downloadFile(url: string): Promise<void> {
     try {
-        const ext = getExt(rawUrl);
-        const pathAfterUpload = rawUrl.split("/raw/upload/")[1]; // "v123/resume/file_abc"
-        const segments = pathAfterUpload.split("/");
-        let filename = segments[segments.length - 1].split("?")[0]; // "file_abc" hoặc "file_abc.pdf"
-        // Nếu chưa có extension thì gắn thêm
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Fetch failed");
+        const blob = await resp.blob();
+
+        // Ưu tiên lấy tên từ URL (đã có extension vì BE đặt public_id có extension)
+        let filename = getFilename(url);
+        const ext = getExt(url);
+
+        // Nếu tên file không có extension thì thêm vào
         if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) {
             filename = `${filename}.${ext}`;
         }
-        return rawUrl.replace("/raw/upload/", `/raw/upload/fl_attachment:${filename}/`);
+
+        // Đảm bảo blob có đúng MIME type
+        const mimeMap: Record<string, string> = {
+            pdf: "application/pdf",
+            doc: "application/msword",
+            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        };
+        const mime = mimeMap[ext] ?? blob.type ?? "application/octet-stream";
+        const typedBlob = new Blob([blob], { type: mime });
+
+        const objUrl = URL.createObjectURL(typedBlob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objUrl);
     } catch {
-        return rawUrl;
+        // Fallback: mở tab mới nếu fetch thất bại
+        window.open(url, "_blank");
     }
 }
 
 /**
- * Với Cloudinary raw URL không có extension trong path, thêm ext vào cuối
- * để PDF.js / Office Viewer nhận dạng đúng.
- * Cloudinary cho phép thêm alias: /raw/upload/.../file_abc.pdf
- * bằng cách rename cuối URL (nếu URL chưa có .pdf).
+ * Với Cloudinary raw URL, đảm bảo cuối path có extension để
+ * Google Docs Viewer / Office Viewer nhận dạng đúng loại file.
  */
 function ensureExtInUrl(rawUrl: string, ext: string): string {
-    if (!ext) return rawUrl;
-    const cleanPath = rawUrl.split("?")[0].toLowerCase();
-    if (cleanPath.endsWith(`.${ext}`)) return rawUrl; // đã có extension rồi
-    // Cloudinary raw: append extension alias
+    if (!ext || !rawUrl) return rawUrl;
+    const [base, query] = rawUrl.split("?");
+    if (base.toLowerCase().endsWith(`.${ext}`)) return rawUrl;
     if (rawUrl.includes("res.cloudinary.com") && rawUrl.includes("/raw/upload/")) {
-        const [base, query] = rawUrl.split("?");
-        return query ? `${base}.${ext}?${query}` : `${base}.${ext}`;
+        const newBase = `${base}.${ext}`;
+        return query ? `${newBase}?${query}` : newBase;
     }
     return rawUrl;
 }
@@ -76,8 +100,8 @@ function ensureExtInUrl(rawUrl: string, ext: string): string {
 const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeError, setIframeError] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
-    // Reset trạng thái khi URL thay đổi
     useEffect(() => {
         setIframeLoaded(false);
         setIframeError(false);
@@ -89,33 +113,36 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const isPdf = ext === "pdf";
     const isDocx = ext === "docx" || ext === "doc";
 
-    // URL chuẩn hoá (đảm bảo có extension để viewer nhận dạng)
     const viewUrl = ensureExtInUrl(url, ext);
-    const downloadUrl = buildDownloadUrl(url);
 
-    // Chọn viewer:
-    // - PDF  → PDF.js (Mozilla CDN) — không phụ thuộc Google, render offline-capable
-    // - DOCX → Office Online Viewer (Microsoft)
-    // - Khác → Office Online fallback
     let embedSrc: string;
     if (isPdf) {
-        embedSrc = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(viewUrl)}`;
+        embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`;
     } else if (isDocx) {
         embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewUrl)}`;
     } else {
-        embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewUrl)}`;
+        embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`;
     }
+
+    const handleDownload = async () => {
+        setDownloading(true);
+        await downloadFile(url);
+        setDownloading(false);
+    };
 
     return (
         <Modal
             open={visible}
             onCancel={onClose}
             footer={
-                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
-                    <Button type="primary" icon={<DownloadOutlined />}>
-                        Tải xuống
-                    </Button>
-                </a>
+                <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    loading={downloading}
+                    onClick={handleDownload}
+                >
+                    Tải xuống
+                </Button>
             }
             width="88vw"
             style={{ top: 12 }}
@@ -137,7 +164,6 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     position: "relative",
                 }}
             >
-                {/* Loading spinner */}
                 {!iframeLoaded && !iframeError && (
                     <div
                         style={{
@@ -157,7 +183,6 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     </div>
                 )}
 
-                {/* Error state */}
                 {iframeError && (
                     <div
                         style={{
@@ -179,15 +204,19 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                         <span style={{ color: "#6b7280", fontSize: 13 }}>
                             Vui lòng tải về để xem file
                         </span>
-                        <a href={downloadUrl} target="_blank" rel="noopener noreferrer" download>
-                            <Button type="primary" icon={<DownloadOutlined />}>
-                                Tải xuống ngay
-                            </Button>
-                        </a>
+                        <Button
+                            type="primary"
+                            icon={<DownloadOutlined />}
+                            loading={downloading}
+                            onClick={handleDownload}
+                        >
+                            Tải xuống ngay
+                        </Button>
                     </div>
                 )}
 
                 <iframe
+                    key={embedSrc}
                     src={embedSrc}
                     style={{
                         width: "100%",

@@ -35,20 +35,34 @@ const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }>
     REJECTED: { color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   label: 'Từ chối'    },
 };
 
-/* ─── Cloudinary download URL helper ─────────────────── */
-function buildDownloadUrl(rawUrl: string): string {
-    if (!rawUrl.includes('res.cloudinary.com') || !rawUrl.includes('/raw/upload/')) return rawUrl;
+/* ─── Download helper (fetch + Blob) ─────────────────── */
+async function downloadFile(url: string): Promise<void> {
     try {
-        const clean = rawUrl.split('?')[0].toLowerCase();
-        const extMatch = clean.match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
-        const ext = extMatch ? extMatch[1] : '';
-        const pathAfterUpload = rawUrl.split('/raw/upload/')[1];
-        const segments = pathAfterUpload.split('/');
-        let filename = segments[segments.length - 1].split('?')[0];
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error("Fetch failed");
+        const blob = await resp.blob();
+        const clean = url.split("?")[0];
+        const extMatch = clean.toLowerCase().match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
+        const ext = extMatch ? extMatch[1] : "";
+        const parts = clean.split("/");
+        let filename = parts[parts.length - 1] || "cv-file";
         if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) filename = `${filename}.${ext}`;
-        return rawUrl.replace('/raw/upload/', `/raw/upload/fl_attachment:${filename}/`);
+        const mimeMap: Record<string, string> = {
+            pdf: "application/pdf",
+            doc: "application/msword",
+            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        };
+        const typedBlob = new Blob([blob], { type: mimeMap[ext] ?? "application/octet-stream" });
+        const objUrl = URL.createObjectURL(typedBlob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(objUrl);
     } catch {
-        return rawUrl;
+        window.open(url, "_blank");
     }
 }
 
@@ -120,7 +134,6 @@ const UserResume = ({ open }: { open: boolean }) => {
                 const rawUrl = r.url?.startsWith('http')
                     ? r.url
                     : `${import.meta.env.VITE_BACKEND_URL}/storage/resume/${r.url}`;
-                const dlUrl = buildDownloadUrl(rawUrl);
                 return (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                         <span
@@ -133,18 +146,16 @@ const UserResume = ({ open }: { open: boolean }) => {
                         >
                             <FileTextOutlined /> Xem CV
                         </span>
-                        <a
-                            href={dlUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <span
+                            onClick={() => downloadFile(rawUrl)}
                             style={{
                                 fontSize: 12, fontWeight: 700, color: '#64748b',
-                                textDecoration: 'none',
+                                cursor: 'pointer',
                             }}
                             title="Tải xuống"
                         >
                             <DownloadOutlined style={{ fontSize: 14 }} />
-                        </a>
+                        </span>
                     </div>
                 );
             },
