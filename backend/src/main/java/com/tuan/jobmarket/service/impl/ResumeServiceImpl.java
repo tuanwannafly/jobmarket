@@ -118,6 +118,10 @@ public class ResumeServiceImpl implements  ResumeService {
         res.setUser(new ResFetchResumeDTO.UserResume(resume.getUser().getId(), resume.getUser().getName()));
         res.setJob(new ResFetchResumeDTO.JobResume(resume.getJob().getId(), resume.getJob().getName()));
 
+        if (resume.getJob() != null && resume.getJob().getCompany() != null) {
+            res.setCompanyName(resume.getJob().getCompany().getName());
+        }
+
         return res;
     }
 
