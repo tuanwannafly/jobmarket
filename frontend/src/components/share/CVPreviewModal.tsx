@@ -18,6 +18,7 @@
 import { Button, Modal, Spin } from "antd";
 import { FileTextOutlined, DownloadOutlined, WarningOutlined } from "@ant-design/icons";
 import { useState, useEffect, useRef } from "react";
+import instance from "@/config/axios-customize";
 
 interface CVPreviewModalProps {
     url: string;
@@ -39,35 +40,51 @@ function getFilename(url: string): string {
     return parts[parts.length - 1] || "cv-file";
 }
 
+/**
+ * Tải file qua axios (có kèm Authorization header) → trả về Blob URL
+ * Dùng cho cả preview (iframe) và download
+ */
+async function fetchFileAsBlob(url: string): Promise<{ blobUrl: string; filename: string; mime: string }> {
+    const ext = getExt(url);
+    const filename = getFilename(url);
+
+    const mimeMap: Record<string, string> = {
+        pdf: "application/pdf",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    };
+    const mime = mimeMap[ext] ?? "application/octet-stream";
+
+    // Nếu là Cloudinary URL (public) → dùng fetch thường để tránh CORS preflight của axios
+    // Nếu là URL nội bộ (backend) → dùng axios để kèm token
+    const isExternal = url.startsWith("http") && !url.includes(window.location.hostname);
+
+    let blob: Blob;
+    if (isExternal) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        blob = await resp.blob();
+    } else {
+        // Dùng axios instance (có interceptor gắn token tự động)
+        const resp = await instance.get(url, { responseType: "blob" } as any);
+        blob = resp as unknown as Blob;
+    }
+
+    const typedBlob = new Blob([blob], { type: mime });
+    const blobUrl = URL.createObjectURL(typedBlob);
+    return { blobUrl, filename: filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`, mime };
+}
+
 async function downloadFile(url: string): Promise<void> {
     try {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error("Fetch failed");
-        const blob = await resp.blob();
-
-        let filename = getFilename(url);
-        const ext = getExt(url);
-
-        if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) {
-            filename = `${filename}.${ext}`;
-        }
-
-        const mimeMap: Record<string, string> = {
-            pdf: "application/pdf",
-            doc: "application/msword",
-            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        };
-        const mime = mimeMap[ext] ?? blob.type ?? "application/octet-stream";
-        const typedBlob = new Blob([blob], { type: mime });
-
-        const objUrl = URL.createObjectURL(typedBlob);
+        const { blobUrl, filename } = await fetchFileAsBlob(url);
         const a = document.createElement("a");
-        a.href = objUrl;
+        a.href = blobUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(objUrl);
+        URL.revokeObjectURL(blobUrl);
     } catch {
         window.open(url, "_blank");
     }
@@ -92,21 +109,28 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeError, setIframeError] = useState(false);
     const [downloading, setDownloading] = useState(false);
+    const [blobUrl, setBlobUrl] = useState<string | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setIframeLoaded(false);
         setIframeError(false);
+        setBlobUrl(null);
 
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         if (!visible || !url) return;
 
         const ext = getExt(url);
+        const isPdfFile = ext === "pdf";
         const isDocxFile = ext === "docx" || ext === "doc";
 
-        // Chỉ cần timeout cho Office Online (DOCX).
-        // PDF render trực tiếp nên onLoad/onError đủ tin cậy.
-        if (isDocxFile) {
+        if (isPdfFile) {
+            // Fetch PDF → tạo blob URL (tránh lỗi 401 khi iframe tự gọi)
+            fetchFileAsBlob(url)
+                .then(({ blobUrl: b }) => setBlobUrl(b))
+                .catch(() => setIframeError(true));
+        } else if (isDocxFile) {
+            // DOCX dùng Office Online → cần timeout fallback
             timeoutRef.current = setTimeout(() => {
                 setIframeLoaded((loaded) => {
                     if (!loaded) setIframeError(true);
@@ -120,6 +144,14 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
         };
     }, [url, visible]);
 
+    // Cleanup blob URL khi đóng modal
+    useEffect(() => {
+        if (!visible && blobUrl) {
+            URL.revokeObjectURL(blobUrl);
+            setBlobUrl(null);
+        }
+    }, [visible]);
+
     if (!url) return null;
 
     const ext = getExt(url);
@@ -127,14 +159,10 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const isDocx = ext === "docx" || ext === "doc";
     const viewUrl = ensureExtInUrl(url, ext);
 
-    /**
-     * ✅ FIX CHÍNH:
-     *  PDF  → URL trực tiếp (browser native rendering — KHÔNG dùng Google Docs Viewer)
-     *  DOCX → Office Online (đáng tin cậy hơn)
-     */
+    // PDF → dùng blob URL (đã fetch kèm token), DOCX → Office Online
     let embedSrc: string;
     if (isPdf) {
-        embedSrc = viewUrl;
+        embedSrc = blobUrl ?? ""; // empty string khi chưa fetch xong → spinner hiện
     } else if (isDocx) {
         embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewUrl)}`;
     } else {
@@ -191,7 +219,7 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     position: "relative",
                 }}
             >
-                {!iframeLoaded && !iframeError && (
+                {!iframeError && (isPdf ? (!blobUrl || !iframeLoaded) : !iframeLoaded) && (
                     <div
                         style={{
                             position: "absolute",
@@ -249,6 +277,7 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     </div>
                 )}
 
+                {embedSrc && (
                 <iframe
                     key={embedSrc}
                     src={embedSrc}
@@ -263,6 +292,7 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     onLoad={handleLoad}
                     onError={handleError}
                 />
+                )}
             </div>
         </Modal>
     );
