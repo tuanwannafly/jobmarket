@@ -1,18 +1,15 @@
 /**
  * CVPreviewModal — shared component dùng ở cả admin và client
  *
- * ✅ Chiến lược xem (ĐÃ SỬA):
- *  - PDF  → render TRỰC TIẾP trong trình duyệt (Chrome/Firefox/Edge/Safari đều hỗ trợ)
- *           KHÔNG dùng Google Docs Viewer nữa — viewer đó hay lỗi với Cloudinary URL
+ * ✅ Chiến lược xem:
+ *  - PDF  → fetch qua backend proxy (/api/v1/files/proxy) → tạo Blob URL → render trực tiếp
+ *           KHÔNG fetch thẳng từ Cloudinary vì browser bị chặn 401 với raw resource
  *  - DOCX → Office Online Viewer (Microsoft) + timeout fallback 30s
  *
- * ✅ Tại sao Google Docs Viewer bị lỗi?
- *  - Google fetch file từ Cloudinary nhưng bị chặn/rate-limit không ổn định
- *  - Khi viewer thất bại, iframe vẫn trả HTTP 200 → onError KHÔNG bao giờ fire
- *  - Người dùng thấy màn hình trắng / spinner kẹt mãi
- *
- * ✅ Chiến lược tải:
- *  - Dùng fetch + Blob để tải cross-origin, đảm bảo file có đúng tên + extension
+ * ✅ Tại sao dùng backend proxy?
+ *  - Cloudinary raw resource trả 401 khi browser fetch trực tiếp (CORS + auth restriction)
+ *  - Backend fetch server-side → không bị chặn
+ *  - Endpoint /api/v1/files/proxy được bảo vệ bằng JWT (an toàn)
  */
 
 import { Button, Modal, Spin } from "antd";
@@ -41,8 +38,21 @@ function getFilename(url: string): string {
 }
 
 /**
- * Tải file qua axios (có kèm Authorization header) → trả về Blob URL
- * Dùng cho cả preview (iframe) và download
+ * Build proxy URL cho Cloudinary resource.
+ * Mọi file từ Cloudinary đều đi qua backend proxy để tránh 401.
+ */
+function buildProxyUrl(originalUrl: string): string {
+    const isCloudinary = originalUrl.includes("res.cloudinary.com");
+    if (!isCloudinary) return originalUrl; // URL nội bộ → giữ nguyên
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL as string) ?? "";
+    return `${backendUrl}/api/v1/files/proxy?url=${encodeURIComponent(originalUrl)}`;
+}
+
+/**
+ * Tải file về:
+ *  - Cloudinary → qua proxy (axios có JWT)
+ *  - URL nội bộ → axios trực tiếp
+ * Trả về Blob URL + filename.
  */
 async function fetchFileAsBlob(url: string): Promise<{ blobUrl: string; filename: string; mime: string }> {
     const ext = getExt(url);
@@ -55,24 +65,18 @@ async function fetchFileAsBlob(url: string): Promise<{ blobUrl: string; filename
     };
     const mime = mimeMap[ext] ?? "application/octet-stream";
 
-    // Nếu là Cloudinary URL (public) → dùng fetch thường để tránh CORS preflight của axios
-    // Nếu là URL nội bộ (backend) → dùng axios để kèm token
-    const isExternal = url.startsWith("http") && !url.includes(window.location.hostname);
-
-    let blob: Blob;
-    if (isExternal) {
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        blob = await resp.blob();
-    } else {
-        // Dùng axios instance (có interceptor gắn token tự động)
-        const resp = await instance.get(url, { responseType: "blob" } as any);
-        blob = resp as unknown as Blob;
-    }
+    // Luôn dùng axios (có JWT interceptor) — URL Cloudinary đã được wrap qua proxy
+    const fetchUrl = buildProxyUrl(url);
+    const resp = await instance.get(fetchUrl, { responseType: "blob" } as any);
+    const blob = resp as unknown as Blob;
 
     const typedBlob = new Blob([blob], { type: mime });
     const blobUrl = URL.createObjectURL(typedBlob);
-    return { blobUrl, filename: filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`, mime };
+    return {
+        blobUrl,
+        filename: filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`,
+        mime,
+    };
 }
 
 async function downloadFile(url: string): Promise<void> {
@@ -125,12 +129,13 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
         const isDocxFile = ext === "docx" || ext === "doc";
 
         if (isPdfFile) {
-            // Fetch PDF → tạo blob URL (tránh lỗi 401 khi iframe tự gọi)
+            // Fetch PDF qua proxy → tạo Blob URL (tránh 401 Cloudinary)
             fetchFileAsBlob(url)
                 .then(({ blobUrl: b }) => setBlobUrl(b))
                 .catch(() => setIframeError(true));
         } else if (isDocxFile) {
-            // DOCX dùng Office Online → cần timeout fallback
+            // DOCX dùng Office Online → cần URL công khai
+            // Nếu là Cloudinary → tạo proxy URL để Office Online có thể fetch
             timeoutRef.current = setTimeout(() => {
                 setIframeLoaded((loaded) => {
                     if (!loaded) setIframeError(true);
@@ -159,12 +164,14 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const isDocx = ext === "docx" || ext === "doc";
     const viewUrl = ensureExtInUrl(url, ext);
 
-    // PDF → dùng blob URL (đã fetch kèm token), DOCX → Office Online
+    // PDF → Blob URL (fetch qua proxy), DOCX → Office Online (dùng proxy URL để Office có thể lấy file)
     let embedSrc: string;
     if (isPdf) {
-        embedSrc = blobUrl ?? ""; // empty string khi chưa fetch xong → spinner hiện
+        embedSrc = blobUrl ?? "";
     } else if (isDocx) {
-        embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewUrl)}`;
+        // Office Online cần URL public → dùng proxy endpoint của backend
+        const proxyUrl = buildProxyUrl(viewUrl);
+        embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(proxyUrl)}`;
     } else {
         embedSrc = viewUrl;
     }
@@ -278,20 +285,20 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                 )}
 
                 {embedSrc && (
-                <iframe
-                    key={embedSrc}
-                    src={embedSrc}
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        border: "none",
-                        display: iframeError ? "none" : "block",
-                    }}
-                    title="CV Preview"
-                    allow="fullscreen"
-                    onLoad={handleLoad}
-                    onError={handleError}
-                />
+                    <iframe
+                        key={embedSrc}
+                        src={embedSrc}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            border: "none",
+                            display: iframeError ? "none" : "block",
+                        }}
+                        title="CV Preview"
+                        allow="fullscreen"
+                        onLoad={handleLoad}
+                        onError={handleError}
+                    />
                 )}
             </div>
         </Modal>
