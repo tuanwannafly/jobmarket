@@ -1,17 +1,23 @@
 /**
  * CVPreviewModal — shared component dùng ở cả admin và client
  *
- * Chiến lược xem:
- *  - PDF  → Google Docs Viewer — không bị CORS với Cloudinary URL
- *  - DOCX → Office Online Viewer (Microsoft)
+ * ✅ Chiến lược xem (ĐÃ SỬA):
+ *  - PDF  → render TRỰC TIẾP trong trình duyệt (Chrome/Firefox/Edge/Safari đều hỗ trợ)
+ *           KHÔNG dùng Google Docs Viewer nữa — viewer đó hay lỗi với Cloudinary URL
+ *  - DOCX → Office Online Viewer (Microsoft) + timeout fallback 30s
  *
- * Chiến lược tải:
+ * ✅ Tại sao Google Docs Viewer bị lỗi?
+ *  - Google fetch file từ Cloudinary nhưng bị chặn/rate-limit không ổn định
+ *  - Khi viewer thất bại, iframe vẫn trả HTTP 200 → onError KHÔNG bao giờ fire
+ *  - Người dùng thấy màn hình trắng / spinner kẹt mãi
+ *
+ * ✅ Chiến lược tải:
  *  - Dùng fetch + Blob để tải cross-origin, đảm bảo file có đúng tên + extension
  */
 
 import { Button, Modal, Spin } from "antd";
 import { FileTextOutlined, DownloadOutlined, WarningOutlined } from "@ant-design/icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface CVPreviewModalProps {
     url: string;
@@ -21,43 +27,31 @@ interface CVPreviewModalProps {
 
 /* ─── Helpers ─────────────────────────────────────── */
 
-/** Lấy extension thực từ URL (bỏ query params, lowercase) */
 function getExt(url: string): string {
     const clean = url.split("?")[0].toLowerCase();
     const match = clean.match(/\.(pdf|docx|doc)(?=$|[^a-z])/);
     return match ? match[1] : "";
 }
 
-/** Lấy tên file từ URL (phần cuối path, bỏ query params) */
 function getFilename(url: string): string {
     const clean = url.split("?")[0];
     const parts = clean.split("/");
     return parts[parts.length - 1] || "cv-file";
 }
 
-/**
- * Tải file qua fetch + Blob rồi trigger download.
- * Cách này đảm bảo:
- *  1. File cross-origin (Cloudinary) được tải đúng
- *  2. Tên file + extension được giữ nguyên
- *  3. Trình duyệt không cố mở inline thay vì tải xuống
- */
 async function downloadFile(url: string): Promise<void> {
     try {
         const resp = await fetch(url);
         if (!resp.ok) throw new Error("Fetch failed");
         const blob = await resp.blob();
 
-        // Ưu tiên lấy tên từ URL (đã có extension vì BE đặt public_id có extension)
         let filename = getFilename(url);
         const ext = getExt(url);
 
-        // Nếu tên file không có extension thì thêm vào
         if (ext && !filename.toLowerCase().endsWith(`.${ext}`)) {
             filename = `${filename}.${ext}`;
         }
 
-        // Đảm bảo blob có đúng MIME type
         const mimeMap: Record<string, string> = {
             pdf: "application/pdf",
             doc: "application/msword",
@@ -75,15 +69,10 @@ async function downloadFile(url: string): Promise<void> {
         document.body.removeChild(a);
         URL.revokeObjectURL(objUrl);
     } catch {
-        // Fallback: mở tab mới nếu fetch thất bại
         window.open(url, "_blank");
     }
 }
 
-/**
- * Với Cloudinary raw URL, đảm bảo cuối path có extension để
- * Google Docs Viewer / Office Viewer nhận dạng đúng loại file.
- */
 function ensureExtInUrl(rawUrl: string, ext: string): string {
     if (!ext || !rawUrl) return rawUrl;
     const [base, query] = rawUrl.split("?");
@@ -97,14 +86,38 @@ function ensureExtInUrl(rawUrl: string, ext: string): string {
 
 /* ─── Component ───────────────────────────────────── */
 
+const OFFICE_ONLINE_TIMEOUT_MS = 30_000;
+
 const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const [iframeLoaded, setIframeLoaded] = useState(false);
     const [iframeError, setIframeError] = useState(false);
     const [downloading, setDownloading] = useState(false);
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         setIframeLoaded(false);
         setIframeError(false);
+
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (!visible || !url) return;
+
+        const ext = getExt(url);
+        const isDocxFile = ext === "docx" || ext === "doc";
+
+        // Chỉ cần timeout cho Office Online (DOCX).
+        // PDF render trực tiếp nên onLoad/onError đủ tin cậy.
+        if (isDocxFile) {
+            timeoutRef.current = setTimeout(() => {
+                setIframeLoaded((loaded) => {
+                    if (!loaded) setIframeError(true);
+                    return loaded;
+                });
+            }, OFFICE_ONLINE_TIMEOUT_MS);
+        }
+
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
     }, [url, visible]);
 
     if (!url) return null;
@@ -112,17 +125,31 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
     const ext = getExt(url);
     const isPdf = ext === "pdf";
     const isDocx = ext === "docx" || ext === "doc";
-
     const viewUrl = ensureExtInUrl(url, ext);
 
+    /**
+     * ✅ FIX CHÍNH:
+     *  PDF  → URL trực tiếp (browser native rendering — KHÔNG dùng Google Docs Viewer)
+     *  DOCX → Office Online (đáng tin cậy hơn)
+     */
     let embedSrc: string;
     if (isPdf) {
-        embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`;
+        embedSrc = viewUrl;
     } else if (isDocx) {
         embedSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewUrl)}`;
     } else {
-        embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(viewUrl)}&embedded=true`;
+        embedSrc = viewUrl;
     }
+
+    const handleLoad = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setIframeLoaded(true);
+    };
+
+    const handleError = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setIframeError(true);
+    };
 
     const handleDownload = async () => {
         setDownloading(true);
@@ -179,7 +206,14 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                         }}
                     >
                         <Spin size="large" />
-                        <span style={{ color: "#64748b", fontSize: 14 }}>Đang tải CV...</span>
+                        <span style={{ color: "#64748b", fontSize: 14 }}>
+                            {isDocx ? "Đang tải CV qua Office Online..." : "Đang tải CV..."}
+                        </span>
+                        {isDocx && (
+                            <span style={{ color: "#94a3b8", fontSize: 12 }}>
+                                File Word có thể mất vài giây để xử lý
+                            </span>
+                        )}
                     </div>
                 )}
 
@@ -226,8 +260,8 @@ const CVPreviewModal = ({ url, visible, onClose }: CVPreviewModalProps) => {
                     }}
                     title="CV Preview"
                     allow="fullscreen"
-                    onLoad={() => setIframeLoaded(true)}
-                    onError={() => setIframeError(true)}
+                    onLoad={handleLoad}
+                    onError={handleError}
                 />
             </div>
         </Modal>
