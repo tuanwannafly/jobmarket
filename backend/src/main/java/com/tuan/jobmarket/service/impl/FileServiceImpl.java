@@ -106,9 +106,11 @@ public class FileServiceImpl implements FileService {
         Map<String, Object> uploadResult = cloudinary.uploader().upload(
                 file.getBytes(),
                 ObjectUtils.asMap(
-                        "public_id", publicId,      // đặt thủ công → URL có extension
+                        "public_id",    publicId,         // đặt thủ công → URL có extension
                         "resource_type", resourceType,
-                        "overwrite", false));
+                        "type",         "upload",         // đảm bảo public delivery
+                        "access_mode",  "public",         // bất kỳ ai cũng xem được qua URL
+                        "overwrite",    false));
 
         // 5. Trả về secure URL (https) từ Cloudinary
         //    Vì public_id đã chứa extension (.pdf/.docx/.doc), secure_url sẽ tự động có đuôi đúng.
