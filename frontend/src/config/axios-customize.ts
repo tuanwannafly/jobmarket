@@ -79,10 +79,11 @@ instance.interceptors.response.use(
             error.config && error.response
             && +error.response.status === 400
             && error.config.url === '/api/v1/auth/refresh'
-            && location.pathname.startsWith("/admin")
         ) {
-            const message = error?.response?.data?.error ?? "Có lỗi xảy ra, vui lòng login.";
-            //dispatch redux action
+            const message = error?.response?.data?.error ?? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.";
+            // Xóa token cũ khỏi localStorage
+            localStorage.removeItem('access_token');
+            // Dispatch redux action để xử lý logout ở mọi trang (không chỉ /admin)
             store.dispatch(setRefreshTokenAction({ status: true, message }));
         }
 
