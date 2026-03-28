@@ -2,7 +2,7 @@
 
 A full-stack job recruitment platform with role-based access control, resume management, and automated email notifications. Built with **Java Spring Boot 3** on the backend and **React + TypeScript** on the frontend.
 
-> 🚀 **Live Demo:** ([jobmarket-three.vercel.app])
+> 🚀 **Live Demo:** ([jobmarket-three.vercel.app](https://jobmarket-three.vercel.app/)
 >
 > ⚠️ **Note:** The backend is hosted on Render's **free tier**. On first load (or after inactivity), the server may take **30–60 seconds to wake up**. Please wait and refresh if you see a loading delay — this is expected behavior.
 
